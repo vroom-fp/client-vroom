@@ -1,0 +1,14 @@
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import TabNavigator from "./TabNavigator";
+import RecordScreen from "../screens/RecordScreen";
+
+const Stack = createNativeStackNavigator();
+
+export default function StackNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="TabNavigator" component={TabNavigator} />
+      <Stack.Screen name="RecordScreen" component={RecordScreen} />
+    </Stack.Navigator>
+  );
+}
