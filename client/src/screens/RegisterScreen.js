@@ -16,7 +16,6 @@ export function RegisterScreen() {
 
   const [input, setInput] = useState({
     name: "",
-    username: "",
     email: "",
     password: "",
   });
