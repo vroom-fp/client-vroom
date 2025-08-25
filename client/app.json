@@ -37,7 +37,18 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store", "expo-location", "expo-maps"],
+    "plugins": [
+      "expo-secure-store",
+      "expo-location",
+      "expo-maps",
+      "react-native-maps",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "0bf1dd2c-5b4d-4462-8d53-2a9cb0bca75c"

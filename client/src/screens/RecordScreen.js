@@ -17,6 +17,7 @@ import { AppleMapsMapType } from "expo-maps/build/apple/AppleMaps.types";
 import { GoogleMapsMapType } from "expo-maps/build/google/GoogleMaps.types";
 import AuthContext from "../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";
+// import MapView from "react-native-maps";
 
 const { width, height } = Dimensions.get("window");
 
