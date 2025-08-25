@@ -13,6 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "config": {
+        "googleMapsApiKey": "AIzaSyBcFLYvOgxmdOBGq-50LagYfWPXVL3HI8Y"
+      },
       "supportsTablet": true,
       "bundleIdentifier": "com.neubri.client",
       "infoPlist": {
@@ -21,6 +24,11 @@
       }
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBcFLYvOgxmdOBGq-50LagYfWPXVL3HI8Y"
+        }
+      },
       "package": "com.neubri.client",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -40,7 +48,13 @@
     "plugins": [
       "expo-secure-store",
       "expo-location",
-      "expo-maps",
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": true,
+          "locationPermission": "Allow $(PRODUCT_NAME) to use your location"
+        }
+      ],
       "react-native-maps",
       [
         "expo-image-picker",

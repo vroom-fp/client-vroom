@@ -8,11 +8,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  SafeAreaView,
+  RefreshControl,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import * as SecureStore from "expo-secure-store";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -23,31 +26,65 @@ export default function PostDetailScreen() {
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const fetchPostDetail = async () => {
     setLoading(true);
     setError(null);
     try {
+      const token = await SecureStore.getItemAsync("access_token");
       const res = await fetch(
         `https://vroom-api.vercel.app/api/post/${postId}`,
         {
           method: "GET",
           headers: {
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YTZmOTE5YWU1YWY2ZDk1NjYwZDZmNCIsImVtYWlsIjoicml6a2FAZ21haWwuY29tIiwiaWF0IjoxNzU1OTQ0NzI5fQ.oIUvNQsfwpxBFYfih6UyfsmdM1UiK8VcW5yJQNbSkZA",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         }
       );
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
-      setPost(data.post);
+      console.log("Post detail response:", data);
+
+      // Check different possible response structures
+      if (data && data._id) {
+        // Direct post object
+        setPost(data);
+      } else if (data.post) {
+        // Wrapped in post property
+        setPost(data.post);
+      } else if (data.data) {
+        // Wrapped in data property
+        setPost(data.data);
+      } else if (data.success && data.post) {
+        // Success wrapper
+        setPost(data.post);
+      } else {
+        console.error("Unexpected response structure:", data);
+        setError("Post not found");
+      }
     } catch (err) {
-      setError("Gagal mengambil detail post");
+      console.error("Fetch post detail error:", err);
+      setError("Failed to load post details");
     } finally {
       setLoading(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchPostDetail();
+    setRefreshing(false);
   };
 
   useEffect(() => {
@@ -56,26 +93,55 @@ export default function PostDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5A00" />
-        <Text style={styles.loadingText}>Memuat detail post...</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Post Details</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading post details...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !post) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || "Post tidak ditemukan"}</Text>
-        <TouchableOpacity onPress={fetchPostDetail} style={styles.retryButton}>
-          <Text style={styles.retryText}>Coba Lagi</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Post Details</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#ff3b30" />
+          <Text style={styles.errorText}>{error || "Post not found"}</Text>
+          <TouchableOpacity
+            onPress={fetchPostDetail}
+            style={styles.retryButton}
+          >
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   const trip = post.trip;
-  const createdAt = new Date(post.createdAt).toLocaleString("id-ID", {
+  const createdAt = new Date(post.createdAt).toLocaleString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -83,20 +149,35 @@ export default function PostDetailScreen() {
     minute: "2-digit",
   });
 
-  const distanceKm = trip?.distance ? (trip.distance / 1000).toFixed(2) : "-";
+  const distanceKm = trip?.distance ? (trip.distance / 1000).toFixed(2) : "0";
   const durationMs = trip?.duration || 0;
   const durationHours = Math.floor(durationMs / 3600000);
   const durationMin = Math.floor((durationMs % 3600000) / 60000);
   const durationStr =
-    durationHours > 0 ? `${durationHours}j ${durationMin}m` : `${durationMin}m`;
+    durationHours > 0 ? `${durationHours}h ${durationMin}m` : `${durationMin}m`;
 
   // Calculate average speed
   const avgSpeed =
     trip?.distance && trip?.duration
       ? (trip.distance / 1000 / (trip.duration / 3600000)).toFixed(1)
-      : "-";
+      : "0";
 
   const images = post.imageUrls || (post.imageUrl ? [post.imageUrl] : []);
+
+  const handleLike = () => {
+    setLiked(!liked);
+    // TODO: Implement API call to like/unlike post
+  };
+
+  const handleSave = () => {
+    setSaved(!saved);
+    // TODO: Implement API call to save/unsave post
+  };
+
+  const handleShare = () => {
+    // TODO: Implement sharing functionality
+    console.log("Share post:", postId);
+  };
 
   const renderRouteMap = () => {
     if (!trip?.path || trip.path.length === 0) return null;
@@ -121,25 +202,28 @@ export default function PostDetailScreen() {
     return (
       <View style={styles.mapContainer}>
         <View style={styles.mapHeader}>
-          <Text style={styles.mapTitle}>Peta Rute Perjalanan</Text>
+          <View style={styles.mapTitleSection}>
+            <Ionicons name="map" size={20} color="#007AFF" />
+            <Text style={styles.mapTitle}>Trip Route</Text>
+          </View>
           <TouchableOpacity
             style={styles.expandButton}
             onPress={() => setIsMapExpanded(!isMapExpanded)}
           >
             <Ionicons
               name={isMapExpanded ? "contract" : "expand"}
-              size={20}
-              color="#FF5A00"
+              size={18}
+              color="#007AFF"
             />
           </TouchableOpacity>
         </View>
+
         <View
           style={[
             styles.mapWrapper,
             isMapExpanded && styles.mapWrapperExpanded,
           ]}
         >
-          {/* Try to render map, fallback to basic info if error */}
           {(() => {
             try {
               return (
@@ -155,21 +239,21 @@ export default function PostDetailScreen() {
                   showsUserLocation={false}
                   showsMyLocationButton={false}
                   showsCompass={true}
-                  showsScale={true}
+                  showsScale={false}
                   showsTraffic={false}
                   showsIndoors={false}
                   showsBuildings={true}
-                  showsPointsOfInterest={true}
+                  showsPointsOfInterest={false}
                 >
-                  {/* Route polyline */}
+                  {/* Route Polyline */}
                   {trip.path.length > 1 && (
                     <Polyline
                       coordinates={trip.path.map((point) => ({
                         latitude: point.lat,
                         longitude: point.lng,
                       }))}
-                      strokeColor="#FF5A00"
-                      strokeWidth={5}
+                      strokeColor="#007AFF"
+                      strokeWidth={4}
                       lineCap="round"
                       lineJoin="round"
                     />
@@ -192,31 +276,31 @@ export default function PostDetailScreen() {
                       </Marker>
                     ))}
 
-                  {/* Start marker */}
+                  {/* Start Marker */}
                   <Marker
                     coordinate={{
                       latitude: trip.path[0].lat,
                       longitude: trip.path[0].lng,
                     }}
-                    title="Titik Mulai"
+                    title="Start Point"
                     description={`Lat: ${trip.path[0].lat.toFixed(
                       4
                     )}, Lng: ${trip.path[0].lng.toFixed(4)}`}
                     anchor={{ x: 0.5, y: 0.5 }}
                   >
                     <View style={styles.startMarker}>
-                      <Ionicons name="play-circle" size={28} color="#00FF00" />
+                      <Ionicons name="play-circle" size={20} color="#00ff00" />
                     </View>
                   </Marker>
 
-                  {/* End marker - only show if different from start */}
+                  {/* End Marker */}
                   {trip.path.length > 1 && (
                     <Marker
                       coordinate={{
                         latitude: trip.path[trip.path.length - 1].lat,
                         longitude: trip.path[trip.path.length - 1].lng,
                       }}
-                      title="Titik Akhir"
+                      title="End Point"
                       description={`Lat: ${trip.path[
                         trip.path.length - 1
                       ].lat.toFixed(4)}, Lng: ${trip.path[
@@ -227,8 +311,8 @@ export default function PostDetailScreen() {
                       <View style={styles.endMarker}>
                         <Ionicons
                           name="stop-circle"
-                          size={28}
-                          color="#FF0000"
+                          size={20}
+                          color="#ff3b30"
                         />
                       </View>
                     </Marker>
@@ -240,35 +324,33 @@ export default function PostDetailScreen() {
               return (
                 <View style={styles.mapFallback}>
                   <Ionicons name="map-outline" size={60} color="#666" />
-                  <Text style={styles.mapFallbackText}>
-                    Peta tidak tersedia
-                  </Text>
+                  <Text style={styles.mapFallbackText}>Map not available</Text>
                   <Text style={styles.mapFallbackSubtext}>
-                    {trip.path.length} titik koordinat • {distanceKm} km
+                    {trip.path.length} points • {distanceKm} km
                   </Text>
                 </View>
               );
             }
           })()}
 
-          {/* Map legend */}
-          <View style={styles.mapLegend}>
-            <View style={styles.legendItem}>
-              <View style={styles.startDot} />
-              <Text style={styles.legendText}>Start</Text>
+          {/* Map Overlay */}
+          <View style={styles.mapOverlay}>
+            <View style={styles.mapInfo}>
+              <View style={styles.routePoint}>
+                <Ionicons name="play-circle" size={12} color="#00ff00" />
+                <Text style={styles.pointLabel}>Start</Text>
+              </View>
+              {trip.path.length > 1 && (
+                <View style={styles.routePoint}>
+                  <Ionicons name="stop-circle" size={12} color="#ff3b30" />
+                  <Text style={styles.pointLabel}>End</Text>
+                </View>
+              )}
+              <View style={styles.routePoint}>
+                <Ionicons name="location" size={12} color="#007AFF" />
+                <Text style={styles.pointLabel}>{trip.path.length} points</Text>
+              </View>
             </View>
-            {trip.path.length > 1 && (
-              <View style={styles.legendItem}>
-                <View style={styles.endDot} />
-                <Text style={styles.legendText}>End</Text>
-              </View>
-            )}
-            {trip.path.length > 2 && (
-              <View style={styles.legendItem}>
-                <View style={styles.waypointLegendDot} />
-                <Text style={styles.legendText}>Waypoints</Text>
-              </View>
-            )}
           </View>
         </View>
       </View>
@@ -276,7 +358,7 @@ export default function PostDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
       {/* Header */}
@@ -287,26 +369,65 @@ export default function PostDetailScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detail Post</Text>
-        <TouchableOpacity style={styles.shareButton}>
+        <Text style={styles.headerTitle}>Post Details</Text>
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Ionicons name="share-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Info */}
-        <View style={styles.userSection}>
-          <Ionicons name="person-circle" size={50} color="#FF5A00" />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#007AFF"
+            title="Pull to refresh"
+            titleColor="#888"
+          />
+        }
+      >
+        {/* User Info Card */}
+        <View style={styles.userCard}>
           <View style={styles.userInfo}>
-            <Text style={styles.username}>
-              {post.user?.name || "Anonymous"}
-            </Text>
-            <Text style={styles.postDate}>{createdAt}</Text>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={24} color="#007AFF" />
+            </View>
+            <View style={styles.userDetails}>
+              <Text style={styles.username}>
+                {post.user?.name || "Anonymous"}
+              </Text>
+              <Text style={styles.postDate}>{createdAt}</Text>
+            </View>
           </View>
         </View>
 
         {/* Caption */}
-        <Text style={styles.caption}>{post.caption}</Text>
+        {post.caption && (
+          <View style={styles.captionCard}>
+            <Text style={styles.caption}>{post.caption}</Text>
+          </View>
+        )}
+
+        {/* Trip Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Ionicons name="map" size={20} color="#007AFF" />
+            <Text style={styles.statValue}>{distanceKm}</Text>
+            <Text style={styles.statLabel}>km</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="timer" size={20} color="#007AFF" />
+            <Text style={styles.statValue}>{durationStr}</Text>
+            <Text style={styles.statLabel}>duration</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="speedometer" size={20} color="#007AFF" />
+            <Text style={styles.statValue}>{avgSpeed}</Text>
+            <Text style={styles.statLabel}>km/h</Text>
+          </View>
+        </View>
 
         {/* Images */}
         {images.length > 0 && (
@@ -346,135 +467,121 @@ export default function PostDetailScreen() {
           </View>
         )}
 
-        {/* Trip Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Ionicons name="map" size={24} color="#FF5A00" />
-            <Text style={styles.statValue}>{distanceKm} km</Text>
-            <Text style={styles.statLabel}>Jarak</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="timer" size={24} color="#FF5A00" />
-            <Text style={styles.statValue}>{durationStr}</Text>
-            <Text style={styles.statLabel}>Durasi</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="speedometer" size={24} color="#FF5A00" />
-            <Text style={styles.statValue}>{avgSpeed} km/h</Text>
-            <Text style={styles.statLabel}>Kecepatan</Text>
-          </View>
-        </View>
-
         {/* Route Map */}
         {renderRouteMap()}
 
         {/* Trip Details */}
         <View style={styles.tripDetails}>
-          <Text style={styles.sectionTitle}>Detail Perjalanan</Text>
-
-          <View style={styles.detailRow}>
-            <Ionicons name="play-circle" size={20} color="#00FF00" />
-            <Text style={styles.detailLabel}>Titik Mulai:</Text>
-            <Text style={styles.detailValue}>
-              {trip.startPoint?.lat.toFixed(4)},{" "}
-              {trip.startPoint?.lng.toFixed(4)}
-            </Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="information-circle" size={20} color="#007AFF" />
+            <Text style={styles.sectionTitle}>Trip Details</Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="stop-circle" size={20} color="#FF0000" />
-            <Text style={styles.detailLabel}>Titik Akhir:</Text>
-            <Text style={styles.detailValue}>
-              {trip.endPoint?.lat.toFixed(4)}, {trip.endPoint?.lng.toFixed(4)}
-            </Text>
-          </View>
+          <View style={styles.detailsList}>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="play-circle" size={16} color="#00ff00" />
+              </View>
+              <Text style={styles.detailLabel}>Start Point</Text>
+              <Text style={styles.detailValue}>
+                {trip.startPoint?.lat.toFixed(4)},{" "}
+                {trip.startPoint?.lng.toFixed(4)}
+              </Text>
+            </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="location" size={20} color="#FF5A00" />
-            <Text style={styles.detailLabel}>Total Waypoints:</Text>
-            <Text style={styles.detailValue}>
-              {trip.path?.length || 0} titik
-            </Text>
-          </View>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="stop-circle" size={16} color="#ff3b30" />
+              </View>
+              <Text style={styles.detailLabel}>End Point</Text>
+              <Text style={styles.detailValue}>
+                {trip.endPoint?.lat.toFixed(4)}, {trip.endPoint?.lng.toFixed(4)}
+              </Text>
+            </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="time" size={20} color="#FF5A00" />
-            <Text style={styles.detailLabel}>Waktu Mulai:</Text>
-            <Text style={styles.detailValue}>
-              {new Date(trip.startTime).toLocaleString("id-ID")}
-            </Text>
-          </View>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="location" size={16} color="#007AFF" />
+              </View>
+              <Text style={styles.detailLabel}>Waypoints</Text>
+              <Text style={styles.detailValue}>
+                {trip.path?.length || 0} points
+              </Text>
+            </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="checkmark-circle" size={20} color="#FF5A00" />
-            <Text style={styles.detailLabel}>Waktu Selesai:</Text>
-            <Text style={styles.detailValue}>
-              {new Date(trip.endTime).toLocaleString("id-ID")}
-            </Text>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="time" size={16} color="#007AFF" />
+              </View>
+              <Text style={styles.detailLabel}>Start Time</Text>
+              <Text style={styles.detailValue}>
+                {new Date(trip.startTime).toLocaleString("en-US")}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="checkmark-circle" size={16} color="#007AFF" />
+              </View>
+              <Text style={styles.detailLabel}>End Time</Text>
+              <Text style={styles.detailValue}>
+                {new Date(trip.endTime).toLocaleString("en-US")}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.likeButton}>
-            <Ionicons name="heart-outline" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Suka</Text>
+          <TouchableOpacity
+            style={[styles.actionButton, liked && styles.actionButtonActive]}
+            onPress={handleLike}
+          >
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={20}
+              color={liked ? "#ff3b30" : "#007AFF"}
+            />
+            <Text style={[styles.actionText, liked && styles.actionTextActive]}>
+              {liked ? "Liked" : "Like"}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.commentButton}>
-            <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Komentar</Text>
+
+          <TouchableOpacity
+            style={[styles.actionButton, saved && styles.actionButtonActive]}
+            onPress={handleSave}
+          >
+            <Ionicons
+              name={saved ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color={saved ? "#007AFF" : "#007AFF"}
+            />
+            <Text style={[styles.actionText, saved && styles.actionTextActive]}>
+              {saved ? "Saved" : "Save"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+            <Ionicons name="share-outline" size={20} color="#007AFF" />
+            <Text style={styles.actionText}>Share</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#181818",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#181818",
-  },
-  loadingText: {
-    color: "#fff",
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#181818",
-  },
-  errorText: {
-    color: "#fff",
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  retryButton: {
-    backgroundColor: "#FF5A00",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: "#fff",
-    fontWeight: "bold",
+    backgroundColor: "#000",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#333",
   },
@@ -482,9 +589,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
-    color: "#fff",
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
+    color: "#fff",
+  },
+  headerSpacer: {
+    width: 40,
   },
   shareButton: {
     padding: 8,
@@ -492,141 +602,265 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  userSection: {
+
+  // Loading & Error States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#888",
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    color: "#888",
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  retryText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  // User Card
+  userCard: {
+    backgroundColor: "#111",
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  userInfo: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
   },
-  userInfo: {
-    marginLeft: 12,
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: "#555",
+  },
+  userDetails: {
+    flex: 1,
   },
   username: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 4,
   },
   postDate: {
-    color: "#888",
     fontSize: 14,
-    marginTop: 2,
+    color: "#888",
+  },
+
+  // Caption Card
+  captionCard: {
+    backgroundColor: "#111",
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
+    padding: 16,
   },
   caption: {
-    color: "#fff",
     fontSize: 16,
     lineHeight: 24,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    color: "#fff",
   },
+
+  // Stats Container
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 20,
+    marginTop: 12,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#111",
+    alignItems: "center",
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
+    gap: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#888",
+  },
+
+  // Image Section
   imageSection: {
-    marginBottom: 16,
+    marginTop: 12,
   },
   postImage: {
     width: screenWidth,
-    height: 250,
+    height: 300,
     resizeMode: "cover",
   },
   imageIndicator: {
     flexDirection: "row",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 16,
+    backgroundColor: "#111",
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#666",
+    backgroundColor: "#333",
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: "#FF5A00",
+    backgroundColor: "#007AFF",
   },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: "#222",
-    marginHorizontal: 16,
-    borderRadius: 12,
-    paddingVertical: 16,
-    marginBottom: 16,
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 8,
-  },
-  statLabel: {
-    color: "#888",
-    fontSize: 12,
-    marginTop: 4,
-  },
+
+  // Map Container
   mapContainer: {
-    backgroundColor: "#222",
-    marginHorizontal: 16,
+    backgroundColor: "#111",
+    marginHorizontal: 20,
+    marginTop: 12,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#333",
+    overflow: "hidden",
   },
   mapHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  mapTitleSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   mapTitle: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+    color: "#fff",
   },
   expandButton: {
     backgroundColor: "#333",
-    borderRadius: 6,
-    padding: 6,
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#555",
   },
   mapWrapper: {
-    backgroundColor: "#2A2A2A",
-    borderRadius: 8,
-    overflow: "hidden",
+    height: 300,
     position: "relative",
-    height: 300, // Increased height for better detail view
   },
   mapWrapperExpanded: {
-    height: 500, // Expanded height
+    height: 500,
   },
   mapView: {
     flex: 1,
     width: "100%",
     height: "100%",
   },
-  mapSvg: {
-    backgroundColor: "#333",
+  mapFallback: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#222",
+  },
+  mapFallbackText: {
+    fontSize: 16,
+    color: "#888",
+    marginTop: 8,
+  },
+  mapFallbackSubtext: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  mapOverlay: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    borderRadius: 8,
+    padding: 12,
+  },
+  mapInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  routePoint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  pointLabel: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
   },
   startMarker: {
     backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 16,
-    padding: 4,
+    borderRadius: 12,
+    padding: 6,
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    alignItems: "center",
-    justifyContent: "center",
   },
   endMarker: {
     backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 16,
-    padding: 4,
+    borderRadius: 12,
+    padding: 6,
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-    alignItems: "center",
-    justifyContent: "center",
   },
   waypointMarker: {
     alignItems: "center",
@@ -636,7 +870,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#FF5A00",
+    backgroundColor: "#007AFF",
     borderWidth: 2,
     borderColor: "#fff",
     shadowColor: "#000",
@@ -645,120 +879,85 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 3,
   },
-  mapLegend: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "rgba(0,0,0,0.8)",
-    borderRadius: 8,
-    padding: 10,
+
+  // Trip Details
+  tripDetails: {
+    backgroundColor: "#111",
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
   },
-  legendItem: {
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
-  },
-  legendText: {
-    color: "#fff",
-    fontSize: 12,
-    marginLeft: 8,
-    fontWeight: "500",
-  },
-  startDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#00FF00",
-  },
-  endDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#FF0000",
-  },
-  waypointLegendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FF5A00",
-    borderWidth: 1,
-    borderColor: "#fff",
-  },
-  tripDetails: {
-    backgroundColor: "#222",
-    marginHorizontal: 16,
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+    gap: 8,
   },
   sectionTitle: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 16,
+    color: "#fff",
+  },
+  detailsList: {
+    padding: 16,
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  detailIcon: {
+    width: 24,
+    alignItems: "center",
   },
   detailLabel: {
     color: "#888",
     fontSize: 14,
-    marginLeft: 8,
     flex: 1,
   },
   detailValue: {
     color: "#fff",
     fontSize: 14,
-    flex: 1,
+    fontWeight: "500",
+    flex: 1.5,
+    textAlign: "right",
   },
+
+  // Action Buttons
   actionButtons: {
     flexDirection: "row",
-    gap: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
-  likeButton: {
+  actionButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FF5A00",
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: "#111",
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
     gap: 8,
   },
-  commentButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#333",
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
+  actionButtonActive: {
+    backgroundColor: "#222",
+    borderColor: "#007AFF",
   },
-  buttonText: {
-    color: "#fff",
+  actionText: {
+    color: "#007AFF",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
-  mapFallback: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#2a2a2a",
-  },
-  mapFallbackText: {
-    fontSize: 16,
-    color: "#fff",
-    marginTop: 8,
-    fontWeight: "500",
-  },
-  mapFallbackSubtext: {
-    fontSize: 14,
-    color: "#ccc",
-    marginTop: 4,
+  actionTextActive: {
+    color: "#007AFF",
   },
 });
