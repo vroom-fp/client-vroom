@@ -15,10 +15,12 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AuthContext from "../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";
+import * as ImagePicker from "expo-image-picker";
 
 const { width, height } = Dimensions.get("window");
 
@@ -110,13 +112,105 @@ export default function CreatePostScreen() {
     });
   };
 
-  // Placeholder for image picker (will be implemented after EAS build)
-  const handleAddPhoto = () => {
-    Alert.alert(
-      "Add Photo",
-      "Photo upload will be available in the next version!\n\nFor now, you can create posts with captions and trip data.",
-      [{ text: "OK" }]
-    );
+  // Image picker functionality
+  const handleAddPhoto = async () => {
+    try {
+      // Show options for camera or gallery
+      Alert.alert("Add Photo", "Choose how you want to add a photo", [
+        {
+          text: "Camera",
+          onPress: () => openCamera(),
+        },
+        {
+          text: "Gallery",
+          onPress: () => openGallery(),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]);
+    } catch (error) {
+      console.error("Error showing photo options:", error);
+      Alert.alert("Error", "Failed to open photo options");
+    }
+  };
+
+  const openCamera = async () => {
+    try {
+      // Request camera permissions
+      const cameraPermission =
+        await ImagePicker.requestCameraPermissionsAsync();
+
+      if (cameraPermission.status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Camera permission is required to take photos"
+        );
+        return;
+      }
+
+      let result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8, // Reduce quality for faster upload
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newImage = {
+          uri: result.assets[0].uri,
+          type: result.assets[0].type || "image/jpeg",
+          name: result.assets[0].fileName || `photo_${Date.now()}.jpg`,
+          width: result.assets[0].width,
+          height: result.assets[0].height,
+        };
+        setSelectedImages([...selectedImages, newImage]);
+      }
+    } catch (error) {
+      console.error("Error opening camera:", error);
+      Alert.alert("Error", "Failed to open camera");
+    }
+  };
+
+  const openGallery = async () => {
+    try {
+      // No permissions request is necessary for launching the image library
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8, // Reduce quality for faster upload
+        allowsMultipleSelection: true, // Allow multiple images
+      });
+
+      console.log("Image picker result:", result);
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newImages = result.assets.map((asset, index) => ({
+          uri: asset.uri,
+          type: asset.type || "image/jpeg",
+          name: asset.fileName || `image_${Date.now()}_${index}.jpg`,
+          width: asset.width,
+          height: asset.height,
+        }));
+
+        // Add new images to existing selected images (max 5 images)
+        const updatedImages = [...selectedImages, ...newImages];
+        if (updatedImages.length > 5) {
+          Alert.alert(
+            "Limit Reached",
+            "You can only add up to 5 images per post"
+          );
+          setSelectedImages(updatedImages.slice(0, 5));
+        } else {
+          setSelectedImages(updatedImages);
+        }
+      }
+    } catch (error) {
+      console.error("Error opening gallery:", error);
+      Alert.alert("Error", "Failed to open gallery");
+    }
   };
 
   // Remove selected image (for future implementation)
@@ -347,9 +441,11 @@ export default function CreatePostScreen() {
               <View style={styles.photoGrid}>
                 {selectedImages.map((image, index) => (
                   <View key={index} style={styles.photoItem}>
-                    <View style={styles.photoPlaceholder}>
-                      <Ionicons name="image" size={40} color="#666" />
-                    </View>
+                    <Image
+                      source={{ uri: image.uri }}
+                      style={styles.photoImage}
+                      resizeMode="cover"
+                    />
                     <TouchableOpacity
                       style={styles.removePhoto}
                       onPress={() => removeImage(index)}
@@ -370,40 +466,6 @@ export default function CreatePostScreen() {
             </View>
           )}
         </View>
-
-        {/* Post Preview */}
-        {(caption.trim() || selectedImages.length > 0) && (
-          <View style={styles.previewCard}>
-            <Text style={styles.sectionTitle}>Preview</Text>
-            <View style={styles.postPreview}>
-              <View style={styles.previewHeader}>
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={20} color="#fff" />
-                </View>
-                <View style={styles.previewUserInfo}>
-                  <Text style={styles.previewUsername}>
-                    {authContext.user?.username || "Your Name"}
-                  </Text>
-                  <Text style={styles.previewTime}>Just now</Text>
-                </View>
-              </View>
-
-              {caption.trim() && (
-                <Text style={styles.previewCaption}>{caption}</Text>
-              )}
-
-              {trip && (
-                <View style={styles.previewTripInfo}>
-                  <Ionicons name="location" size={14} color="#007AFF" />
-                  <Text style={styles.previewTripText}>
-                    {formatDistance(trip.distance)} •{" "}
-                    {formatDuration(trip.duration)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       {/* Create Post Button */}
@@ -610,6 +672,13 @@ const styles = StyleSheet.create({
   photoItem: {
     position: "relative",
   },
+  photoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
   photoPlaceholder: {
     width: 80,
     height: 80,
@@ -686,6 +755,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 8,
+  },
+  previewImagesContainer: {
+    marginBottom: 12,
+  },
+  previewImage: {
+    width: 120,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  previewImageCount: {
+    color: "#888",
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: "center",
   },
   previewTripInfo: {
     flexDirection: "row",
