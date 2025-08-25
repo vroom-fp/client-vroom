@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HomeScreen } from "../screens/HomeScreen";
-import { Ionicons, MaterialIcons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import PostNavigator from "./PostNavigator";
 import WishlistScreen from "../screens/WishlistScreen";
@@ -13,7 +13,7 @@ function ThreadsHeader() {
   return (
     <View style={styles.headerContainer}>
       <TouchableOpacity>
-        <Text style={styles.headerLogo}>@</Text>
+        <Text style={styles.headerLogo}>VROOM</Text>
       </TouchableOpacity>
     </View>
   );
@@ -27,8 +27,9 @@ export default function TabNavigator() {
           backgroundColor: "#000",
           borderTopColor: "#222",
           paddingVertical: 8,
+          height: 80,
         },
-        tabBarActiveTintColor: "#fff",
+        tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "#888",
         tabBarShowLabel: false,
         header: () => <ThreadsHeader />,
@@ -44,25 +45,7 @@ export default function TabNavigator() {
         component={PostNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="AIScreen"
-        component={AIScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="search" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="stop-circle" size={size} color={color} />
+            <Ionicons name="grid-outline" size={size} color={color} />
           ),
         }}
       />
@@ -71,7 +54,25 @@ export default function TabNavigator() {
         component={WishlistScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="heart" size={size} color={color} />
+            <Ionicons name="heart-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="AIScreen"
+        component={AIScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles-outline" size={size} color={color} />
           ),
         }}
       />
@@ -80,7 +81,7 @@ export default function TabNavigator() {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <FontAwesome name="user" size={size} color={color} />
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
