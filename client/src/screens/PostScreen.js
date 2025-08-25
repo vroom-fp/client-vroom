@@ -1,59 +1,41 @@
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useState, useCallback } from "react";
+import React from "react";
+import { useNavigation } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 import {
+  Button,
+  FlatList,
   StyleSheet,
   Text,
   View,
-  FlatList,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
-  RefreshControl,
-  Dimensions,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as SecureStore from "expo-secure-store";
-
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = width - 40;
+import Svg, { Polyline, Circle } from "react-native-svg";
 
 export default function PostScreen() {
   const navigation = useNavigation();
-
-  // State management
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Fetch posts when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchPosts();
-    }, [])
-  );
+  const [posts, setPosts] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const fetchPosts = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setError(null);
-      const token = await SecureStore.getItemAsync("access_token");
-      const response = await fetch("https://vroom-api.vercel.app/api/post", {
+      const res = await fetch("https://vroom-api.vercel.app/api/post", {
+        method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YTZmOTE5YWU1YWY2ZDk1NjYwZDZmNCIsImVtYWlsIjoicml6a2FAZ21haWwuY29tIiwiaWF0IjoxNzU1OTQ0NzI5fQ.oIUvNQsfwpxBFYfih6UyfsmdM1UiK8VcW5yJQNbSkZA",
         },
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setPosts(data.posts || []);
-      } else {
-        setError(data.message || "Failed to fetch posts");
-      }
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-      setError("Network error. Please try again.");
+      const data = await res.json();
+      console.log(data);
+      setPosts(data.posts || []);
+    } catch (err) {
+      setError("Gagal mengambil data post");
     } finally {
       setLoading(false);
     }
@@ -65,325 +47,473 @@ export default function PostScreen() {
     setRefreshing(false);
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now - date;
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-    const diffInDays = diffInHours / 24;
-
-    if (diffInHours < 1) {
-      const minutes = Math.floor(diffInMs / (1000 * 60));
-      return `${minutes}m ago`;
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h ago`;
-    } else if (diffInDays < 7) {
-      return `${Math.floor(diffInDays)}d ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
-
-  const formatDistance = (meters) => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(1)} km`;
-    }
-    return `${meters.toFixed(0)} m`;
-  };
-
-  const formatDuration = (milliseconds) => {
-    const seconds = Math.floor(milliseconds / 1000);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m`;
-    } else {
-      return `${seconds}s`;
-    }
-  };
-
-  const navigateToPostDetail = (postId) => {
-    // Try to get parent navigator to access PostDetailScreen
-    const parentNavigation = navigation.getParent();
-    if (parentNavigation) {
-      parentNavigation.navigate("PostDetailScreen", { postId });
-    } else {
-      console.log("Parent navigation not found");
-    }
-  };
-
-  const navigateToCreatePost = () => {
-    // Try to get parent navigator to access CreatePostScreen
-    const parentNavigation = navigation.getParent();
-    if (parentNavigation) {
-      parentNavigation.navigate("CreatePostScreen");
-    } else {
-      console.log("Parent navigation not found");
-    }
-  };
-
-  const renderPostItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.postCard}
-      onPress={() => navigateToPostDetail(item._id)}
-      activeOpacity={0.8}
-    >
-      {/* Post Header */}
-      <View style={styles.postHeader}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={20} color="#fff" />
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={styles.userName}>
-              {item.user?.name || "Anonymous User"}
-            </Text>
-            <Text style={styles.postTime}>{formatDate(item.createdAt)}</Text>
-          </View>
-        </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#888" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Post Caption */}
-      {item.caption && (
-        <Text style={styles.postCaption} numberOfLines={3}>
-          {item.caption}
-        </Text>
-      )}
-
-      {/* Post Images */}
-      {item.imageUrls && item.imageUrls.length > 0 && (
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: item.imageUrls[0] }}
-            style={styles.postImage}
-            resizeMode="cover"
-          />
-          {item.imageUrls.length > 1 && (
-            <View style={styles.imageCount}>
-              <Text style={styles.imageCountText}>
-                +{item.imageUrls.length - 1}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Trip Information */}
-      {item.trip && (
-        <View style={styles.tripInfo}>
-          <Ionicons name="location" size={16} color="#007AFF" />
-          <Text style={styles.tripText}>
-            Trip: {formatDistance(item.trip.distance || 0)} •{" "}
-            {formatDuration(item.trip.duration || 0)}
-          </Text>
-        </View>
-      )}
-
-      {/* Post Actions */}
-      <View style={styles.postActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="heart-outline" size={22} color="#888" />
-          <Text style={styles.actionText}>Like</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={22} color="#888" />
-          <Text style={styles.actionText}>Comment</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="share-outline" size={22} color="#888" />
-          <Text style={styles.actionText}>Share</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubbles-outline" size={64} color="#666" />
-      <Text style={styles.emptyTitle}>No Posts Yet</Text>
-      <Text style={styles.emptySubtitle}>
-        Be the first to share your car touring experience!
-      </Text>
-      <TouchableOpacity
-        style={styles.createFirstPostButton}
-        onPress={navigateToCreatePost}
-      >
-        <Ionicons name="add" size={20} color="#fff" />
-        <Text style={styles.createFirstPostText}>Create First Post</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderErrorState = () => (
-    <View style={styles.errorContainer}>
-      <Ionicons name="alert-circle-outline" size={64} color="#ff3b30" />
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorSubtitle}>{error}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={fetchPosts}>
-        <Text style={styles.retryText}>Try Again</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  React.useEffect(() => {
+    fetchPosts();
+  }, []);
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading posts...</Text>
+        <Ionicons name="bicycle" size={48} color="#FF5A00" />
+        <Text style={{ color: "#fff", marginTop: 10, fontSize: 18 }}>
+          Memuat post...
+        </Text>
       </View>
     );
   }
 
-  if (error && posts.length === 0) {
+  if (error) {
     return (
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Posts</Text>
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={navigateToCreatePost}
-          >
-            <Ionicons name="add" size={24} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-        {renderErrorState()}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Posts</Text>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={navigateToCreatePost}
-        >
-          <Ionicons name="add" size={24} color="#007AFF" />
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={fetchPosts}>
+          <Text style={styles.retryText}>Coba Lagi</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
 
-      {/* Posts List */}
+  const renderItem = ({ item }) => {
+    const trip = item.trip;
+    const createdAt = new Date(item.createdAt).toLocaleString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const distanceKm = trip?.distance ? (trip.distance / 1000).toFixed(2) : "-";
+    const durationMs = trip?.duration || 0;
+    const durationMin = Math.floor(durationMs / 60000);
+    const durationStr =
+      durationMin > 60
+        ? `${Math.floor(durationMin / 60)}j ${durationMin % 60}m`
+        : `${durationMin}m`;
+
+    // Generate static map preview using Google Static Maps API
+    const generateStaticMapUrl = () => {
+      if (!trip?.path || trip.path.length === 0) return null;
+
+      const path = trip.path
+        .map((point) => `${point.lat},${point.lng}`)
+        .join("|");
+      const center =
+        trip.path.length > 0 ? `${trip.path[0].lat},${trip.path[0].lng}` : "";
+
+      return `https://maps.googleapis.com/maps/api/staticmap?center=${center}&zoom=13&size=400x200&path=color:0xFF5A00|weight:3|${path}&key=YOUR_GOOGLE_MAPS_API_KEY`;
+    };
+
+    const staticMapUrl = generateStaticMapUrl();
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Ionicons
+            name="person-circle"
+            size={40}
+            color="#FF5A00"
+            style={{ marginRight: 12 }}
+          />
+          <View>
+            <Text style={styles.username}>
+              {item.user?.name || "Anonymous"}
+            </Text>
+            <Text style={styles.time}>{createdAt}</Text>
+          </View>
+        </View>
+        <Text style={styles.caption}>{item.caption}</Text>
+
+        {/* Route Preview - Realistic path visualization */}
+        {trip?.path && trip.path.length > 0 && (
+          <View style={styles.routeContainer}>
+            <View style={styles.routeHeader}>
+              <Ionicons name="map" size={20} color="#FF5A00" />
+              <Text style={styles.routeTitle}>Rute Perjalanan</Text>
+            </View>
+            <View style={styles.routeVisualization}>
+              {/* SVG Route Path */}
+              <Svg height="80" width="100%" style={styles.svgContainer}>
+                {(() => {
+                  // Normalize coordinates to fit SVG canvas
+                  const lats = trip.path.map((p) => p.lat);
+                  const lngs = trip.path.map((p) => p.lng);
+
+                  const minLat = Math.min(...lats);
+                  const maxLat = Math.max(...lats);
+                  const minLng = Math.min(...lngs);
+                  const maxLng = Math.max(...lngs);
+
+                  const latRange = maxLat - minLat || 0.001;
+                  const lngRange = maxLng - minLng || 0.001;
+
+                  // Convert to SVG coordinates
+                  const svgPoints = trip.path.map((point) => {
+                    const x = ((point.lng - minLng) / lngRange) * 260 + 20; // 20px margin
+                    const y = ((maxLat - point.lat) / latRange) * 40 + 20; // Flip Y axis, 20px margin
+                    return { x, y };
+                  });
+
+                  // Create smooth path points
+                  const pathPoints = svgPoints
+                    .map((point, index) => {
+                      if (index === 0) return `M ${point.x} ${point.y}`;
+
+                      const prevPoint = svgPoints[index - 1];
+                      const nextPoint = svgPoints[index + 1];
+
+                      if (nextPoint && index < svgPoints.length - 1) {
+                        // Create smooth curves using quadratic bezier
+                        const cpX = (prevPoint.x + point.x) / 2;
+                        const cpY = (prevPoint.y + point.y) / 2;
+                        return `Q ${cpX} ${cpY} ${point.x} ${point.y}`;
+                      } else {
+                        return `L ${point.x} ${point.y}`;
+                      }
+                    })
+                    .join(" ");
+
+                  const firstPoint = svgPoints[0];
+                  const lastPoint = svgPoints[svgPoints.length - 1];
+
+                  return (
+                    <>
+                      {/* Route path */}
+                      <Polyline
+                        points={svgPoints.map((p) => `${p.x},${p.y}`).join(" ")}
+                        fill="none"
+                        stroke="#FF5A00"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      {/* Waypoints for more complex routes */}
+                      {svgPoints.length > 3 &&
+                        svgPoints
+                          .slice(1, -1)
+                          .map((point, index) => (
+                            <Circle
+                              key={index}
+                              cx={point.x}
+                              cy={point.y}
+                              r="2"
+                              fill="#FF5A00"
+                              opacity="0.6"
+                            />
+                          ))}
+
+                      {/* Start point */}
+                      <Circle
+                        cx={firstPoint.x}
+                        cy={firstPoint.y}
+                        r="8"
+                        fill="#00FF00"
+                      />
+                      <Circle
+                        cx={firstPoint.x}
+                        cy={firstPoint.y}
+                        r="4"
+                        fill="#fff"
+                      />
+
+                      {/* End point */}
+                      <Circle
+                        cx={lastPoint.x}
+                        cy={lastPoint.y}
+                        r="8"
+                        fill="#FF0000"
+                      />
+                      <Circle
+                        cx={lastPoint.x}
+                        cy={lastPoint.y}
+                        r="4"
+                        fill="#fff"
+                      />
+                    </>
+                  );
+                })()}
+              </Svg>
+
+              {/* Start and End labels */}
+              <View style={styles.routeLabels}>
+                <View style={styles.startLabel}>
+                  <Ionicons name="play-circle" size={16} color="#00FF00" />
+                  <Text style={styles.pointText}>Start</Text>
+                </View>
+                <View style={styles.endLabel}>
+                  <Ionicons name="stop-circle" size={16} color="#FF0000" />
+                  <Text style={styles.pointText}>End</Text>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.routeInfo}>
+              {trip.path.length} titik koordinat • {distanceKm} km
+            </Text>
+          </View>
+        )}
+
+        {/* Display images if available */}
+        {(item.imageUrl || item.imageUrls) && (
+          <View style={styles.imageContainer}>
+            {item.imageUrl && (
+              <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
+            )}
+            {item.imageUrls && item.imageUrls.length > 0 && (
+              <View style={styles.multiImageContainer}>
+                {item.imageUrls.slice(0, 3).map((url, index) => (
+                  <Image
+                    key={index}
+                    source={{ uri: url }}
+                    style={styles.multiImage}
+                  />
+                ))}
+                {item.imageUrls.length > 3 && (
+                  <View style={styles.moreImagesOverlay}>
+                    <Text style={styles.moreImagesText}>
+                      +{item.imageUrls.length - 3}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Ionicons name="map" size={18} color="#FF5A00" />
+            <Text style={styles.statText}>{distanceKm} km</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="timer" size={18} color="#FF5A00" />
+            <Text style={styles.statText}>{durationStr}</Text>
+          </View>
+        </View>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() =>
+              navigation.navigate("PostDetailScreen", { postId: item._id })
+            }
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.actionText}>Detail</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn}>
+            <Ionicons name="heart-outline" size={20} color="#fff" />
+            <Text style={styles.actionText}>Suka</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="light" />
+      <View style={styles.header}>
+        <Ionicons
+          name="bicycle"
+          size={28}
+          color="#FF5A00"
+          style={{ marginRight: 8 }}
+        />
+        <Text style={styles.headerText}>Vroom - Post Trip</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
+          <Ionicons name="refresh" size={22} color="#FF5A00" />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={posts}
-        renderItem={renderPostItem}
         keyExtractor={(item) => item._id}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#007AFF"
-            colors={["#007AFF"]}
-          />
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        ListEmptyComponent={
+          <Text style={{ color: "#fff", textAlign: "center", marginTop: 40 }}>
+            Belum ada post.
+          </Text>
         }
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={renderEmptyState}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: "#000",
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: "#000",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    color: "#fff",
-    fontSize: 16,
-    marginTop: 16,
+    backgroundColor: "#181818",
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#333",
-  },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  createButton: {
-    padding: 8,
-  },
-  listContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  postCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#333",
+    borderBottomWidth: 1,
+    borderBottomColor: "#222",
+    backgroundColor: "#181818",
   },
-  postHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#333",
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  userDetails: {
+  headerText: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "bold",
     flex: 1,
   },
-  userName: {
+  refreshBtn: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: "#222",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#181818",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#181818",
+  },
+  errorText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    marginBottom: 10,
   },
-  postTime: {
-    color: "#888",
-    fontSize: 12,
-    marginTop: 2,
+  retryText: {
+    color: "#FF5A00",
+    fontSize: 16,
   },
-  moreButton: {
-    padding: 4,
+  listContent: {
+    paddingBottom: 20,
   },
-  postCaption: {
+  card: {
+    backgroundColor: "#222",
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 10,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  username: {
+    fontWeight: "bold",
+    fontSize: 16,
     color: "#fff",
+    marginRight: 6,
+  },
+  time: {
+    color: "#888",
     fontSize: 14,
-    lineHeight: 20,
+  },
+  caption: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 12,
+    color: "#fff",
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 24,
     marginBottom: 12,
   },
-  imageContainer: {
+  statBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#181818",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statText: {
+    color: "#FF5A00",
+    fontWeight: "bold",
+    fontSize: 15,
+    marginLeft: 4,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 20,
+    paddingTop: 8,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FF5A00",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  actionText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 4,
+  },
+  routeContainer: {
+    backgroundColor: "#333",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  routeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  routeTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  routeVisualization: {
+    marginBottom: 8,
     position: "relative",
+  },
+  svgContainer: {
+    marginBottom: 8,
+    backgroundColor: "#2A2A2A",
+    borderRadius: 8,
+  },
+  routeLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+  },
+  startLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  endLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  pointText: {
+    color: "#fff",
+    fontSize: 12,
+  },
+  routeInfo: {
+    color: "#888",
+    fontSize: 12,
+  },
+  imageContainer: {
     marginBottom: 12,
   },
   postImage: {
@@ -391,112 +521,26 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
   },
-  imageCount: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  imageCountText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  tripInfo: {
+  multiImageContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
     gap: 4,
+    height: 120,
   },
-  tripText: {
-    color: "#007AFF",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  postActions: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#333",
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  actionText: {
-    color: "#888",
-    fontSize: 12,
-  },
-  emptyContainer: {
+  multiImage: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    color: "#888",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  createFirstPostButton: {
-    backgroundColor: "#007AFF",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    gap: 8,
-  },
-  createFirstPostText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  errorTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  errorSubtitle: {
-    color: "#888",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  retryButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
     borderRadius: 8,
   },
-  retryText: {
+  moreImagesOverlay: {
+    position: "absolute",
+    right: 4,
+    bottom: 4,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 4,
+    padding: 4,
+  },
+  moreImagesText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "bold",
   },
 });
