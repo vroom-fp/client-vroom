@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Svg, { Polyline, Circle } from "react-native-svg";
+import MapView, { Marker, Polyline } from "react-native-maps";
 
 export default function PostScreen() {
   const navigation = useNavigation();
@@ -90,21 +90,6 @@ export default function PostScreen() {
         ? `${Math.floor(durationMin / 60)}j ${durationMin % 60}m`
         : `${durationMin}m`;
 
-    // Generate static map preview using Google Static Maps API
-    const generateStaticMapUrl = () => {
-      if (!trip?.path || trip.path.length === 0) return null;
-
-      const path = trip.path
-        .map((point) => `${point.lat},${point.lng}`)
-        .join("|");
-      const center =
-        trip.path.length > 0 ? `${trip.path[0].lat},${trip.path[0].lng}` : "";
-
-      return `https://maps.googleapis.com/maps/api/staticmap?center=${center}&zoom=13&size=400x200&path=color:0xFF5A00|weight:3|${path}&key=YOUR_GOOGLE_MAPS_API_KEY`;
-    };
-
-    const staticMapUrl = generateStaticMapUrl();
-
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -123,126 +108,136 @@ export default function PostScreen() {
         </View>
         <Text style={styles.caption}>{item.caption}</Text>
 
-        {/* Route Preview - Realistic path visualization */}
+        {/* Route Preview - Interactive map visualization */}
         {trip?.path && trip.path.length > 0 && (
           <View style={styles.routeContainer}>
             <View style={styles.routeHeader}>
               <Ionicons name="map" size={20} color="#FF5A00" />
               <Text style={styles.routeTitle}>Rute Perjalanan</Text>
             </View>
-            <View style={styles.routeVisualization}>
-              {/* SVG Route Path */}
-              <Svg height="80" width="100%" style={styles.svgContainer}>
-                {(() => {
-                  // Normalize coordinates to fit SVG canvas
-                  const lats = trip.path.map((p) => p.lat);
-                  const lngs = trip.path.map((p) => p.lng);
-
-                  const minLat = Math.min(...lats);
-                  const maxLat = Math.max(...lats);
-                  const minLng = Math.min(...lngs);
-                  const maxLng = Math.max(...lngs);
-
-                  const latRange = maxLat - minLat || 0.001;
-                  const lngRange = maxLng - minLng || 0.001;
-
-                  // Convert to SVG coordinates
-                  const svgPoints = trip.path.map((point) => {
-                    const x = ((point.lng - minLng) / lngRange) * 260 + 20; // 20px margin
-                    const y = ((maxLat - point.lat) / latRange) * 40 + 20; // Flip Y axis, 20px margin
-                    return { x, y };
-                  });
-
-                  // Create smooth path points
-                  const pathPoints = svgPoints
-                    .map((point, index) => {
-                      if (index === 0) return `M ${point.x} ${point.y}`;
-
-                      const prevPoint = svgPoints[index - 1];
-                      const nextPoint = svgPoints[index + 1];
-
-                      if (nextPoint && index < svgPoints.length - 1) {
-                        // Create smooth curves using quadratic bezier
-                        const cpX = (prevPoint.x + point.x) / 2;
-                        const cpY = (prevPoint.y + point.y) / 2;
-                        return `Q ${cpX} ${cpY} ${point.x} ${point.y}`;
-                      } else {
-                        return `L ${point.x} ${point.y}`;
-                      }
-                    })
-                    .join(" ");
-
-                  const firstPoint = svgPoints[0];
-                  const lastPoint = svgPoints[svgPoints.length - 1];
-
+            <View style={styles.mapContainer}>
+              {/* Try to render map, fallback to basic info if error */}
+              {(() => {
+                try {
                   return (
-                    <>
-                      {/* Route path */}
-                      <Polyline
-                        points={svgPoints.map((p) => `${p.x},${p.y}`).join(" ")}
-                        fill="none"
-                        stroke="#FF5A00"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                    <MapView
+                      style={styles.mapView}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                      rotateEnabled={false}
+                      pitchEnabled={false}
+                      initialRegion={{
+                        latitude: trip.path[0].lat,
+                        longitude: trip.path[0].lng,
+                        latitudeDelta: Math.max(
+                          Math.abs(
+                            Math.max(...trip.path.map((p) => p.lat)) -
+                              Math.min(...trip.path.map((p) => p.lat))
+                          ) * 1.5,
+                          0.01
+                        ),
+                        longitudeDelta: Math.max(
+                          Math.abs(
+                            Math.max(...trip.path.map((p) => p.lng)) -
+                              Math.min(...trip.path.map((p) => p.lng))
+                          ) * 1.5,
+                          0.01
+                        ),
+                      }}
+                      mapType="standard"
+                      showsUserLocation={false}
+                      showsMyLocationButton={false}
+                      showsCompass={false}
+                      showsScale={false}
+                      showsTraffic={false}
+                      showsIndoors={false}
+                      showsBuildings={false}
+                      showsPointsOfInterest={false}
+                    >
+                      {/* Route polyline - only show if we have more than 1 point */}
+                      {trip.path.length > 1 && (
+                        <Polyline
+                          coordinates={trip.path.map((point) => ({
+                            latitude: point.lat,
+                            longitude: point.lng,
+                          }))}
+                          strokeColor="#FF5A00"
+                          strokeWidth={4}
+                          lineCap="round"
+                          lineJoin="round"
+                        />
+                      )}
 
-                      {/* Waypoints for more complex routes */}
-                      {svgPoints.length > 3 &&
-                        svgPoints
-                          .slice(1, -1)
-                          .map((point, index) => (
-                            <Circle
-                              key={index}
-                              cx={point.x}
-                              cy={point.y}
-                              r="2"
-                              fill="#FF5A00"
-                              opacity="0.6"
+                      {/* Start marker */}
+                      <Marker
+                        coordinate={{
+                          latitude: trip.path[0].lat,
+                          longitude: trip.path[0].lng,
+                        }}
+                        title="Start"
+                        description="Titik awal perjalanan"
+                        anchor={{ x: 0.5, y: 0.5 }}
+                      >
+                        <View style={styles.startMarker}>
+                          <Ionicons
+                            name="play-circle"
+                            size={20}
+                            color="#00FF00"
+                          />
+                        </View>
+                      </Marker>
+
+                      {/* End marker - only show if different from start */}
+                      {trip.path.length > 1 && (
+                        <Marker
+                          coordinate={{
+                            latitude: trip.path[trip.path.length - 1].lat,
+                            longitude: trip.path[trip.path.length - 1].lng,
+                          }}
+                          title="End"
+                          description="Titik akhir perjalanan"
+                          anchor={{ x: 0.5, y: 0.5 }}
+                        >
+                          <View style={styles.endMarker}>
+                            <Ionicons
+                              name="stop-circle"
+                              size={20}
+                              color="#FF0000"
                             />
-                          ))}
-
-                      {/* Start point */}
-                      <Circle
-                        cx={firstPoint.x}
-                        cy={firstPoint.y}
-                        r="8"
-                        fill="#00FF00"
-                      />
-                      <Circle
-                        cx={firstPoint.x}
-                        cy={firstPoint.y}
-                        r="4"
-                        fill="#fff"
-                      />
-
-                      {/* End point */}
-                      <Circle
-                        cx={lastPoint.x}
-                        cy={lastPoint.y}
-                        r="8"
-                        fill="#FF0000"
-                      />
-                      <Circle
-                        cx={lastPoint.x}
-                        cy={lastPoint.y}
-                        r="4"
-                        fill="#fff"
-                      />
-                    </>
+                          </View>
+                        </Marker>
+                      )}
+                    </MapView>
                   );
-                })()}
-              </Svg>
+                } catch (error) {
+                  console.log("Map render error:", error);
+                  return (
+                    <View style={styles.mapFallback}>
+                      <Ionicons name="map-outline" size={40} color="#666" />
+                      <Text style={styles.mapFallbackText}>
+                        Peta tidak tersedia
+                      </Text>
+                      <Text style={styles.mapFallbackSubtext}>
+                        {trip.path.length} titik koordinat • {distanceKm} km
+                      </Text>
+                    </View>
+                  );
+                }
+              })()}
 
-              {/* Start and End labels */}
-              <View style={styles.routeLabels}>
-                <View style={styles.startLabel}>
-                  <Ionicons name="play-circle" size={16} color="#00FF00" />
-                  <Text style={styles.pointText}>Start</Text>
-                </View>
-                <View style={styles.endLabel}>
-                  <Ionicons name="stop-circle" size={16} color="#FF0000" />
-                  <Text style={styles.pointText}>End</Text>
+              {/* Map overlay with route info */}
+              <View style={styles.mapOverlay}>
+                <View style={styles.routeLabels}>
+                  <View style={styles.startLabel}>
+                    <Ionicons name="play-circle" size={16} color="#00FF00" />
+                    <Text style={styles.pointText}>Start</Text>
+                  </View>
+                  {trip.path.length > 1 && (
+                    <View style={styles.endLabel}>
+                      <Ionicons name="stop-circle" size={16} color="#FF0000" />
+                      <Text style={styles.pointText}>End</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
@@ -484,6 +479,68 @@ const styles = StyleSheet.create({
   routeVisualization: {
     marginBottom: 8,
     position: "relative",
+  },
+  mapContainer: {
+    height: 150,
+    borderRadius: 8,
+    overflow: "hidden",
+    marginBottom: 8,
+    position: "relative",
+  },
+  mapView: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
+  mapFallback: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#2A2A2A",
+    borderRadius: 8,
+  },
+  mapFallbackText: {
+    color: "#888",
+    fontSize: 16,
+    marginTop: 8,
+  },
+  mapFallbackSubtext: {
+    color: "#666",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  mapOverlay: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 6,
+    padding: 6,
+  },
+  startMarker: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 10,
+    padding: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  endMarker: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 10,
+    padding: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    alignItems: "center",
+    justifyContent: "center",
   },
   svgContainer: {
     marginBottom: 8,
