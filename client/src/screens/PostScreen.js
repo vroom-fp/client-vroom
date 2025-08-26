@@ -24,6 +24,8 @@ export default function PostScreen() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [userId, setUserId] = React.useState(null);
+  const [likeLoading, setLikeLoading] = React.useState({}); // Track loading state for each post
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -39,7 +41,10 @@ export default function PostScreen() {
       });
       const data = await res.json();
       console.log("Posts data:", data);
-      setPosts(data.posts || []);
+      const postsData = data.posts || [];
+      setPosts(postsData);
+
+      // Like statuses will be checked when userId is available via useEffect
     } catch (err) {
       console.error("Fetch posts error:", err);
       setError("Failed to load posts");
@@ -56,7 +61,142 @@ export default function PostScreen() {
 
   React.useEffect(() => {
     fetchPosts();
+    fetchUserId();
   }, []);
+
+  // Update like statuses when userId becomes available
+  React.useEffect(() => {
+    if (userId && posts.length > 0) {
+      updateLikeStatuses();
+    }
+  }, [userId]);
+
+  const updateLikeStatuses = async () => {
+    if (!userId || !posts.length) return;
+
+    const postsWithLikes = await checkLikeStatuses(posts);
+    setPosts(postsWithLikes);
+  };
+
+  // Function to get user ID from profile API
+  const fetchUserId = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      if (!token) return;
+
+      const response = await fetch("https://vroom-api.vercel.app/api/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user && data.user._id) {
+          setUserId(data.user._id);
+          console.log("User ID fetched for likes:", data.user._id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user ID:", error);
+    }
+  };
+
+  // Check like status for multiple posts
+  const checkLikeStatuses = async (postsData) => {
+    if (!userId || !postsData.length) return postsData;
+
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+
+      // Create promises for all like status checks
+      const likePromises = postsData.map(async (post) => {
+        try {
+          const response = await fetch(
+            `https://vroom-api.vercel.app/api/likes?postId=${post._id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+                "x-user-id": userId,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              return {
+                ...post,
+                isLiked: data.isLiked,
+                likeCount: data.likeCount,
+              };
+            }
+          }
+          return post;
+        } catch (error) {
+          console.error(
+            `Error checking like status for post ${post._id}:`,
+            error
+          );
+          return post;
+        }
+      });
+
+      const updatedPosts = await Promise.all(likePromises);
+      return updatedPosts;
+    } catch (error) {
+      console.error("Error checking like statuses:", error);
+      return postsData;
+    }
+  };
+
+  // Toggle like/unlike for a specific post
+  const handleLike = async (postId) => {
+    if (!userId || likeLoading[postId]) return;
+
+    setLikeLoading((prev) => ({ ...prev, [postId]: true }));
+
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      const response = await fetch("https://vroom-api.vercel.app/api/likes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-user-id": userId,
+        },
+        body: JSON.stringify({
+          postId: postId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Toggle like response:", data);
+        if (data.success) {
+          // Update the specific post in the posts array
+          setPosts((prevPosts) =>
+            prevPosts.map((post) =>
+              post._id === postId
+                ? { ...post, isLiked: data.isLiked, likeCount: data.likeCount }
+                : post
+            )
+          );
+        }
+      } else {
+        const errorData = await response.json();
+        console.error("Like toggle failed:", errorData);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    } finally {
+      setLikeLoading((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
 
   if (loading) {
     return (
@@ -306,9 +446,34 @@ export default function PostScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="heart-outline" size={18} color="#007AFF" />
-            <Text style={styles.actionText}>Like</Text>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              item.isLiked && styles.actionButtonActive,
+            ]}
+            onPress={(e) => {
+              e.stopPropagation(); // Prevent navigation to detail screen
+              handleLike(item._id);
+            }}
+            disabled={likeLoading[item._id]}
+          >
+            <Ionicons
+              name={item.isLiked ? "heart" : "heart-outline"}
+              size={18}
+              color={item.isLiked ? "#ff3b30" : "#007AFF"}
+            />
+            <Text
+              style={[
+                styles.actionText,
+                item.isLiked && styles.actionTextActive,
+              ]}
+            >
+              {likeLoading[item._id]
+                ? "..."
+                : `${item.likeCount || 0} ${
+                    (item.likeCount || 0) === 1 ? "Like" : "Likes"
+                  }`}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <Ionicons name="bookmark-outline" size={18} color="#007AFF" />
@@ -672,9 +837,16 @@ const styles = StyleSheet.create({
     borderColor: "#333",
     gap: 6,
   },
+  actionButtonActive: {
+    backgroundColor: "#2a2a2a",
+    borderColor: "#007AFF",
+  },
   actionText: {
     color: "#007AFF",
     fontSize: 14,
     fontWeight: "500",
+  },
+  actionTextActive: {
+    color: "#007AFF",
   },
 });
