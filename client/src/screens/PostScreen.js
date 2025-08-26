@@ -471,13 +471,23 @@ export default function PostScreen() {
               {likeLoading[item._id]
                 ? "..."
                 : `${item.likeCount || 0} ${
-                    (item.likeCount || 0) === 1 ? "Like" : "Likes"
+                    (item.likeCount || 0) === 1 ? "" : ""
                   }`}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="bookmark-outline" size={18} color="#007AFF" />
-            <Text style={styles.actionText}>Save</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={(e) => {
+              e.stopPropagation(); // Prevent navigation to detail screen
+              navigation.navigate("PostDetail", { postId: item._id });
+            }}
+          >
+            <Ionicons name="chatbubbles-outline" size={18} color="#007AFF" />
+            <Text style={styles.actionText}>
+              {item.commentCount || 0}
+              {""}
+              {(item.commentCount || 0) === 1 ? "" : ""}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
