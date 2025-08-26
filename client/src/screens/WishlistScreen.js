@@ -32,17 +32,7 @@ export default function WishlistScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchWishlist();
-      // Scroll to top when returning to this screen - with safety check
-      setTimeout(() => {
-        if (flatListRef.current && wishlistItems && wishlistItems.length > 0) {
-          try {
-            flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-          } catch (scrollError) {
-            console.log("Scroll error (safe to ignore):", scrollError);
-          }
-        }
-      }, 100);
-    }, [wishlistItems])
+    }, [])
   );
 
   const fetchWishlist = async () => {

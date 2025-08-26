@@ -1,23 +1,12 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HomeScreen } from "../screens/HomeScreen";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import PostNavigator from "./PostNavigator";
 import WishlistScreen from "../screens/WishlistScreen";
 import AIScreen from "../screens/AIScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
-
-function ThreadsHeader() {
-  return (
-    <View style={styles.headerContainer}>
-      <TouchableOpacity>
-        <Text style={styles.headerLogo}>VROOM</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 export default function TabNavigator() {
   return (
@@ -32,12 +21,7 @@ export default function TabNavigator() {
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "#888",
         tabBarShowLabel: false,
-        header: () => <ThreadsHeader />,
-        headerStyle: {
-          backgroundColor: "#000",
-          borderBottomColor: "#222",
-          borderBottomWidth: 1,
-        },
+        headerShown: false,
       })}
     >
       <Tab.Screen
@@ -88,18 +72,3 @@ export default function TabNavigator() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  headerContainer: {
-    backgroundColor: "#000",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#222",
-    alignItems: "center",
-  },
-  headerLogo: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-});
