@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,10 @@ import {
   Dimensions,
   SafeAreaView,
   RefreshControl,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,7 +23,7 @@ import * as SecureStore from "expo-secure-store";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-export default function PostDetailScreen() {
+function PostDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { postId } = route.params;
@@ -35,6 +39,14 @@ export default function PostDetailScreen() {
   const [likeLoading, setLikeLoading] = useState(false);
   const [userId, setUserId] = useState(null);
   const [saved, setSaved] = useState(false);
+
+  // Comments state
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [addingComment, setAddingComment] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const commentInputRef = useRef(null);
 
   const fetchPostDetail = async () => {
     setLoading(true);
@@ -108,6 +120,20 @@ export default function PostDetailScreen() {
       checkLikeStatus();
     }
   }, [userId, post]);
+
+  // Fetch comments when component loads and when showComments is true
+  useEffect(() => {
+    if (postId) {
+      fetchComments();
+    }
+  }, [postId]);
+
+  // Fetch comments when showComments is toggled
+  useEffect(() => {
+    if (showComments && postId) {
+      fetchComments();
+    }
+  }, [showComments, postId]);
 
   // Function to get user ID from profile API
   const fetchUserId = async () => {
@@ -203,6 +229,165 @@ export default function PostDetailScreen() {
     } finally {
       setLikeLoading(false);
     }
+  };
+
+  // Fetch comments for this post
+  const fetchComments = async () => {
+    if (!postId) return;
+
+    setCommentsLoading(true);
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      const response = await fetch(
+        `https://vroom-api.vercel.app/api/comments?postId=${postId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Comments response:", data);
+        if (data.success && data.data) {
+          setComments(data.data);
+        } else if (data.comments) {
+          setComments(data.comments);
+        } else {
+          setComments([]);
+        }
+      } else {
+        console.error("Failed to fetch comments:", response.status);
+        setComments([]);
+      }
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  // Add new comment
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !userId || addingComment) return;
+
+    setAddingComment(true);
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      const response = await fetch(
+        "https://vroom-api.vercel.app/api/comments",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "x-user-id": userId,
+          },
+          body: JSON.stringify({
+            postId: postId,
+            content: newComment.trim(),
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Add comment response:", data);
+        if (data.success) {
+          setNewComment("");
+          commentInputRef.current?.blur();
+          // Refresh comments to get updated list
+          await fetchComments();
+        }
+      } else {
+        const errorData = await response.json();
+        console.error("Add comment failed:", errorData);
+        Alert.alert("Error", "Failed to add comment. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      Alert.alert("Error", "Failed to add comment. Please try again.");
+    } finally {
+      setAddingComment(false);
+    }
+  };
+
+  // Delete comment
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      if (!token) {
+        Alert.alert("Error", "Please login again");
+        return;
+      }
+
+      const response = await fetch(
+        `https://vroom-api.vercel.app/api/comments?commentId=${commentId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "x-user-id": userId,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Delete successful - refresh comments list
+          await fetchComments();
+
+          Alert.alert(
+            "Success",
+            data.message || "Comment deleted successfully"
+          );
+        } else {
+          Alert.alert("Error", data.message || "Failed to delete comment");
+        }
+      } else {
+        // Handle error response
+        let errorMessage = "Failed to delete comment";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+
+        console.error("Delete comment failed with status:", response.status);
+        Alert.alert("Error", errorMessage);
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      Alert.alert("Error", "Failed to delete comment. Please try again.");
+    }
+  };
+
+  // Confirm delete comment
+  const confirmDeleteComment = (commentId, isOwnComment) => {
+    if (!isOwnComment) {
+      Alert.alert("Error", "You can only delete your own comments.");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Comment",
+      "Are you sure you want to delete this comment?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => handleDeleteComment(commentId),
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -466,220 +651,361 @@ export default function PostDetailScreen() {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+  // Render comments section
+  const renderComments = () => {
+    if (!showComments) return null;
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post Details</Text>
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#007AFF"
-            title="Pull to refresh"
-            titleColor="#888"
-          />
-        }
-      >
-        {/* User Info Card */}
-        <View style={styles.userCard}>
-          <View style={styles.userInfo}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={24} color="#007AFF" />
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={styles.username}>
-                {post.user?.name || "Anonymous"}
-              </Text>
-              <Text style={styles.postDate}>{createdAt}</Text>
-            </View>
+    return (
+      <View style={styles.commentsSection}>
+        <View style={styles.commentsSectionHeader}>
+          <View style={styles.commentsHeaderLeft}>
+            <Ionicons name="chatbubbles" size={20} color="#007AFF" />
+            <Text style={styles.commentsTitle}>
+              Comments ({comments.length})
+            </Text>
           </View>
+          <TouchableOpacity
+            style={styles.commentsToggle}
+            onPress={() => setShowComments(false)}
+          >
+            <Ionicons name="chevron-up" size={20} color="#007AFF" />
+          </TouchableOpacity>
         </View>
 
-        {/* Caption */}
-        {post.caption && (
-          <View style={styles.captionCard}>
-            <Text style={styles.caption}>{post.caption}</Text>
-          </View>
-        )}
-
-        {/* Trip Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Ionicons name="map" size={20} color="#007AFF" />
-            <Text style={styles.statValue}>{distanceKm}</Text>
-            <Text style={styles.statLabel}>km</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="timer" size={20} color="#007AFF" />
-            <Text style={styles.statValue}>{durationStr}</Text>
-            <Text style={styles.statLabel}>duration</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="speedometer" size={20} color="#007AFF" />
-            <Text style={styles.statValue}>{avgSpeed}</Text>
-            <Text style={styles.statLabel}>km/h</Text>
-          </View>
-        </View>
-
-        {/* Images */}
-        {images.length > 0 && (
-          <View style={styles.imageSection}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(event) => {
-                const index = Math.round(
-                  event.nativeEvent.contentOffset.x / screenWidth
-                );
-                setCurrentImageIndex(index);
-              }}
+        {/* Add Comment Input */}
+        <View style={styles.addCommentContainer}>
+          <View style={styles.addCommentInputWrapper}>
+            <TextInput
+              ref={commentInputRef}
+              style={styles.addCommentInput}
+              placeholder="Add a comment..."
+              placeholderTextColor="#888"
+              value={newComment}
+              onChangeText={setNewComment}
+              multiline
+              maxLength={500}
+              editable={!addingComment}
+            />
+            <TouchableOpacity
+              style={[
+                styles.addCommentButton,
+                (!newComment.trim() || addingComment) &&
+                  styles.addCommentButtonDisabled,
+              ]}
+              onPress={handleAddComment}
+              disabled={!newComment.trim() || addingComment}
             >
-              {images.map((url, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: url }}
-                  style={styles.postImage}
-                />
-              ))}
-            </ScrollView>
-            {images.length > 1 && (
-              <View style={styles.imageIndicator}>
-                {images.map((_, index) => (
-                  <View
+              {addingComment ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <Ionicons name="send" size={18} color="#007AFF" />
+              )}
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.commentCharCount}>{newComment.length}/500</Text>
+        </View>
+
+        {/* Comments List */}
+        <View style={styles.commentsList}>
+          {commentsLoading ? (
+            <View style={styles.commentsLoading}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={styles.commentsLoadingText}>
+                Loading comments...
+              </Text>
+            </View>
+          ) : comments.length === 0 ? (
+            <View style={styles.noComments}>
+              <Ionicons name="chatbubble-outline" size={40} color="#666" />
+              <Text style={styles.noCommentsText}>No comments yet</Text>
+              <Text style={styles.noCommentsSubtext}>
+                Be the first to comment!
+              </Text>
+            </View>
+          ) : (
+            comments.map((comment, index) => (
+              <View key={comment._id || index} style={styles.commentItem}>
+                <View style={styles.commentAvatar}>
+                  <Ionicons name="person" size={16} color="#007AFF" />
+                </View>
+                <View style={styles.commentContent}>
+                  <View style={styles.commentHeader}>
+                    <Text style={styles.commentAuthor}>
+                      {comment.user?.name || "Anonymous"}
+                    </Text>
+                    <Text style={styles.commentDate}>
+                      {new Date(comment.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Text>
+                    {comment.user?._id === userId && (
+                      <TouchableOpacity
+                        style={styles.commentDeleteButton}
+                        onPress={() =>
+                          confirmDeleteComment(
+                            comment._id,
+                            comment.user?._id === userId
+                          )
+                        }
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={14}
+                          color="#ff3b30"
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <Text style={styles.commentText}>{comment.content}</Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Post Details</Text>
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <Ionicons name="share-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+              title="Pull to refresh"
+              titleColor="#888"
+            />
+          }
+        >
+          {/* User Info Card */}
+          <View style={styles.userCard}>
+            <View style={styles.userInfo}>
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={24} color="#007AFF" />
+              </View>
+              <View style={styles.userDetails}>
+                <Text style={styles.username}>
+                  {post.user?.name || "Anonymous"}
+                </Text>
+                <Text style={styles.postDate}>{createdAt}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Caption */}
+          {post.caption && (
+            <View style={styles.captionCard}>
+              <Text style={styles.caption}>{post.caption}</Text>
+            </View>
+          )}
+
+          {/* Trip Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Ionicons name="map" size={20} color="#007AFF" />
+              <Text style={styles.statValue}>{distanceKm}</Text>
+              <Text style={styles.statLabel}>km</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="timer" size={20} color="#007AFF" />
+              <Text style={styles.statValue}>{durationStr}</Text>
+              <Text style={styles.statLabel}>duration</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="speedometer" size={20} color="#007AFF" />
+              <Text style={styles.statValue}>{avgSpeed}</Text>
+              <Text style={styles.statLabel}>km/h</Text>
+            </View>
+          </View>
+
+          {/* Images */}
+          {images.length > 0 && (
+            <View style={styles.imageSection}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(
+                    event.nativeEvent.contentOffset.x / screenWidth
+                  );
+                  setCurrentImageIndex(index);
+                }}
+              >
+                {images.map((url, index) => (
+                  <Image
                     key={index}
-                    style={[
-                      styles.dot,
-                      currentImageIndex === index && styles.activeDot,
-                    ]}
+                    source={{ uri: url }}
+                    style={styles.postImage}
                   />
                 ))}
+              </ScrollView>
+              {images.length > 1 && (
+                <View style={styles.imageIndicator}>
+                  {images.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        currentImageIndex === index && styles.activeDot,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Route Map */}
+          {renderRouteMap()}
+
+          {/* Trip Details */}
+          <View style={styles.tripDetails}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Text style={styles.sectionTitle}>Trip Details</Text>
+            </View>
+
+            <View style={styles.detailsList}>
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="play-circle" size={16} color="#00ff00" />
+                </View>
+                <Text style={styles.detailLabel}>Start Point</Text>
+                <Text style={styles.detailValue}>
+                  {trip.startPoint?.lat.toFixed(4)},{" "}
+                  {trip.startPoint?.lng.toFixed(4)}
+                </Text>
               </View>
-            )}
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="stop-circle" size={16} color="#ff3b30" />
+                </View>
+                <Text style={styles.detailLabel}>End Point</Text>
+                <Text style={styles.detailValue}>
+                  {trip.endPoint?.lat.toFixed(4)},{" "}
+                  {trip.endPoint?.lng.toFixed(4)}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="location" size={16} color="#007AFF" />
+                </View>
+                <Text style={styles.detailLabel}>Waypoints</Text>
+                <Text style={styles.detailValue}>
+                  {trip.path?.length || 0} points
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="time" size={16} color="#007AFF" />
+                </View>
+                <Text style={styles.detailLabel}>Start Time</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(trip.startTime).toLocaleString("en-US")}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailIcon}>
+                  <Ionicons name="checkmark-circle" size={16} color="#007AFF" />
+                </View>
+                <Text style={styles.detailLabel}>End Time</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(trip.endTime).toLocaleString("en-US")}
+                </Text>
+              </View>
+            </View>
           </View>
-        )}
 
-        {/* Route Map */}
-        {renderRouteMap()}
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, liked && styles.actionButtonActive]}
+              onPress={handleLike}
+              disabled={likeLoading}
+            >
+              <Ionicons
+                name={liked ? "heart" : "heart-outline"}
+                size={20}
+                color={liked ? "#ff3b30" : "#007AFF"}
+              />
+              <Text
+                style={[styles.actionText, liked && styles.actionTextActive]}
+              >
+                {likeLoading
+                  ? "..."
+                  : `${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
+              </Text>
+            </TouchableOpacity>
 
-        {/* Trip Details */}
-        <View style={styles.tripDetails}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="information-circle" size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>Trip Details</Text>
+            <TouchableOpacity
+              style={[styles.actionButton]}
+              onPress={() => setShowComments(!showComments)}
+            >
+              <Ionicons
+                name={showComments ? "chatbubbles" : "chatbubbles-outline"}
+                size={20}
+                color="#007AFF"
+              />
+              <Text style={styles.actionText}>
+                {comments.length}{" "}
+                {comments.length === 1 ? "Comment" : "Comments"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, saved && styles.actionButtonActive]}
+              onPress={handleSave}
+            >
+              <Ionicons
+                name={saved ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color={saved ? "#007AFF" : "#007AFF"}
+              />
+              <Text
+                style={[styles.actionText, saved && styles.actionTextActive]}
+              >
+                {saved ? "Saved" : "Save"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.detailsList}>
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="play-circle" size={16} color="#00ff00" />
-              </View>
-              <Text style={styles.detailLabel}>Start Point</Text>
-              <Text style={styles.detailValue}>
-                {trip.startPoint?.lat.toFixed(4)},{" "}
-                {trip.startPoint?.lng.toFixed(4)}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="stop-circle" size={16} color="#ff3b30" />
-              </View>
-              <Text style={styles.detailLabel}>End Point</Text>
-              <Text style={styles.detailValue}>
-                {trip.endPoint?.lat.toFixed(4)}, {trip.endPoint?.lng.toFixed(4)}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="location" size={16} color="#007AFF" />
-              </View>
-              <Text style={styles.detailLabel}>Waypoints</Text>
-              <Text style={styles.detailValue}>
-                {trip.path?.length || 0} points
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="time" size={16} color="#007AFF" />
-              </View>
-              <Text style={styles.detailLabel}>Start Time</Text>
-              <Text style={styles.detailValue}>
-                {new Date(trip.startTime).toLocaleString("en-US")}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="checkmark-circle" size={16} color="#007AFF" />
-              </View>
-              <Text style={styles.detailLabel}>End Time</Text>
-              <Text style={styles.detailValue}>
-                {new Date(trip.endTime).toLocaleString("en-US")}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, liked && styles.actionButtonActive]}
-            onPress={handleLike}
-            disabled={likeLoading}
-          >
-            <Ionicons
-              name={liked ? "heart" : "heart-outline"}
-              size={20}
-              color={liked ? "#ff3b30" : "#007AFF"}
-            />
-            <Text style={[styles.actionText, liked && styles.actionTextActive]}>
-              {likeLoading
-                ? "..."
-                : `${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, saved && styles.actionButtonActive]}
-            onPress={handleSave}
-          >
-            <Ionicons
-              name={saved ? "bookmark" : "bookmark-outline"}
-              size={20}
-              color={saved ? "#007AFF" : "#007AFF"}
-            />
-            <Text style={[styles.actionText, saved && styles.actionTextActive]}>
-              {saved ? "Saved" : "Save"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={20} color="#007AFF" />
-            <Text style={styles.actionText}>Share</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          {/* Comments Section */}
+          {renderComments()}
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1046,7 +1372,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   actionButton: {
     flex: 1,
@@ -1072,4 +1398,160 @@ const styles = StyleSheet.create({
   actionTextActive: {
     color: "#007AFF",
   },
+
+  // Comments Section
+  commentsSection: {
+    backgroundColor: "#111",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  commentsSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  commentsHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  commentsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  commentsToggle: {
+    backgroundColor: "#333",
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#555",
+  },
+
+  // Add Comment
+  addCommentContainer: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  addCommentInputWrapper: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: "#222",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#444",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  addCommentInput: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 16,
+    maxHeight: 100,
+    minHeight: 40,
+    textAlignVertical: "top",
+  },
+  addCommentButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+    padding: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    width: 36,
+    height: 36,
+  },
+  addCommentButtonDisabled: {
+    backgroundColor: "#333",
+  },
+  commentCharCount: {
+    fontSize: 12,
+    color: "#888",
+    textAlign: "right",
+    marginTop: 4,
+  },
+
+  // Comments List
+  commentsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  commentsLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 8,
+  },
+  commentsLoadingText: {
+    color: "#888",
+    fontSize: 14,
+  },
+  noComments: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 8,
+  },
+  noCommentsText: {
+    color: "#888",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  noCommentsSubtext: {
+    color: "#666",
+    fontSize: 14,
+  },
+
+  // Comment Item
+  commentItem: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 12,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#555",
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 8,
+  },
+  commentAuthor: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  commentDate: {
+    color: "#888",
+    fontSize: 12,
+  },
+  commentDeleteButton: {
+    marginLeft: "auto",
+    padding: 4,
+  },
+  commentText: {
+    color: "#fff",
+    fontSize: 14,
+    lineHeight: 20,
+  },
 });
+
+export default PostDetailScreen;
