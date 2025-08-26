@@ -12,12 +12,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { AppleMaps, GoogleMaps } from "expo-maps";
-import { AppleMapsMapType } from "expo-maps/build/apple/AppleMaps.types";
-import { GoogleMapsMapType } from "expo-maps/build/google/GoogleMaps.types";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import AuthContext from "../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";
-// import MapView from "react-native-maps";
 
 const { width, height } = Dimensions.get("window");
 
@@ -28,9 +25,16 @@ export default function RecordScreen() {
   // Map ref
   const mapRef = useRef(null);
 
-  // Recording states
+  // Refs to fix stale closure in intervals
+  const recordingStateRef = useRef("idle");
+  const currentTripRef = useRef(null);
+  const pathPointsRef = useRef([]); // Keep for debug display only
+  const lastSentTimeRef = useRef(null); // Track when we last sent a point
+  const currentLocationRef = useRef(null); // Track current location
+
   const [recordingState, setRecordingState] = useState("idle"); // idle, recording, paused
   const [currentTrip, setCurrentTrip] = useState(null);
+  const [intervalId, setIntervalId] = useState(null); // Store interval ID
   const [currentLocation, setCurrentLocation] = useState(null);
 
   // Trip stats
@@ -50,9 +54,13 @@ export default function RecordScreen() {
   // Map and route states
   const [routePath, setRoutePath] = useState([]);
   const [initialRegion, setInitialRegion] = useState(null);
+  // Remove pathPoints state since we're sending directly to backend
+  const [lastSentLocation, setLastSentLocation] = useState(null);
+  const [userId, setUserId] = useState(null); // Store user ID for API calls
 
   useEffect(() => {
     checkLocationPermission();
+    fetchUserId(); // Get user ID when component mounts
     return () => {
       // Cleanup on unmount
       if (locationSubscription) {
@@ -75,11 +83,83 @@ export default function RecordScreen() {
     return () => clearInterval(interval);
   }, [recordingState, startTime]);
 
+  // Update refs to fix stale closure problem
+  useEffect(() => {
+    recordingStateRef.current = recordingState;
+  }, [recordingState]);
+
+  useEffect(() => {
+    currentTripRef.current = currentTrip;
+  }, [currentTrip]);
+
+  // Update ref for debug display only
+  useEffect(() => {
+    if (currentTrip?.path) {
+      pathPointsRef.current = currentTrip.path;
+    }
+  }, [currentTrip?.path]);
+
+  // Function to get user ID from profile API
+  const fetchUserId = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      if (!token) return;
+
+      const response = await fetch("https://vroom-api.vercel.app/api/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user && data.user._id) {
+          setUserId(data.user._id);
+          console.log("User ID fetched:", data.user._id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user ID:", error);
+    }
+  };
+
+  // Calculate distance between two coordinates in meters
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lng2 - lng1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distance in meters
+  };
+
   const checkLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationPermission(status === "granted");
-      if (status !== "granted") {
+      if (status === "granted") {
+        // Get current location when permission is granted
+        try {
+          const location = await getCurrentLocation();
+          setCurrentLocation(location);
+          setInitialRegion({
+            latitude: location.lat,
+            longitude: location.lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        } catch (error) {
+          console.error("Error getting initial location:", error);
+        }
+      } else {
         Alert.alert(
           "Permission Required",
           "Location permission is required to track your route."
@@ -94,10 +174,23 @@ export default function RecordScreen() {
     try {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
+        maximumAge: 10000, // Cache for 10 seconds
+        timeout: 15000, // 15 second timeout
       });
+
+      // Validate coordinates to ensure they're reasonable
+      const lat = location.coords.latitude;
+      const lng = location.coords.longitude;
+
+      // Basic validation for Indonesia coordinates
+      if (lat < -11 || lat > 6 || lng < 95 || lng > 141) {
+        console.warn("GPS coordinates outside Indonesia bounds:", lat, lng);
+        // Still return the coordinates but log the warning
+      }
+
       return {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
+        lat: lat,
+        lng: lng,
       };
     } catch (error) {
       console.error("Error getting current location:", error);
@@ -113,8 +206,17 @@ export default function RecordScreen() {
 
     setLoading(true);
     try {
-      const location = await getCurrentLocation();
-      setCurrentLocation(location);
+      // Get current location first
+      let location = currentLocation;
+      if (!location) {
+        location = await getCurrentLocation();
+        setCurrentLocation(location);
+      }
+
+      // Validate location
+      if (!location || !location.lat || !location.lng) {
+        throw new Error("Unable to get current location");
+      }
 
       const token = await SecureStore.getItemAsync("access_token");
       const response = await fetch("https://vroom-api.vercel.app/api/trips", {
@@ -131,9 +233,15 @@ export default function RecordScreen() {
       const data = await response.json();
 
       if (response.ok) {
+        console.log("Trip started successfully:", data);
         setCurrentTrip(data.trip);
+        currentTripRef.current = data.trip; // Update ref immediately
         setRecordingState("recording");
+        recordingStateRef.current = "recording"; // Update ref immediately
         setStartTime(Date.now());
+        lastSentTimeRef.current = null; // Reset timer for new trip
+        console.log("Recording state set to: recording");
+        console.log("Trip ID set to:", data.trip._id);
 
         // Set initial map region
         setInitialRegion({
@@ -151,7 +259,42 @@ export default function RecordScreen() {
           },
         ]);
 
+        // Initialize path points array for backend
+        const startPathPoint = {
+          lat: location.lat,
+          lng: location.lng,
+          timestamp: new Date().toISOString(),
+        };
+        console.log("Initial path point:", startPathPoint);
+        // Don't store in local state since we send directly to backend
+        console.log("Starting location - trip created with ID:", data.trip._id);
+        setLastSentLocation(location);
+
+        console.log("Starting location tracking...");
         startLocationTracking();
+
+        // Start 5-second interval to send points
+        const id = setInterval(() => {
+          if (
+            recordingStateRef.current === "recording" &&
+            currentLocationRef.current
+          ) {
+            const pathPoint = {
+              lat: currentLocationRef.current.lat,
+              lng: currentLocationRef.current.lng,
+              timestamp: new Date().toISOString(),
+            };
+
+            console.log(
+              "🔴 INTERVAL: Sending point every 5 seconds:",
+              pathPoint
+            );
+            updateTripPathDirectly(pathPoint);
+          }
+        }, 5000);
+
+        setIntervalId(id);
+        console.log("Started 5-second interval for sending points");
 
         Alert.alert("Trip Started", "Recording your route...");
       } else {
@@ -171,16 +314,32 @@ export default function RecordScreen() {
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // Update every 5 seconds for UI
-          distanceInterval: 10, // Update every 10 meters
+          //upda setiap 1 detik untuk ui nya
+          timeInterval: 1000,
+          //update setiap berap meter
+          distanceInterval: 1,
         },
-        (location) => {
+        async (location) => {
           const newLocation = {
             lat: location.coords.latitude,
             lng: location.coords.longitude,
           };
 
+          // Validate coordinates
+          if (
+            newLocation.lat < -11 ||
+            newLocation.lat > 6 ||
+            newLocation.lng < 95 ||
+            newLocation.lng > 141
+          ) {
+            console.warn("Invalid GPS coordinates received:", newLocation);
+            return; // Skip this update
+          }
+
+          console.log("Location update:", newLocation);
+          console.log("Current recording state:", recordingStateRef.current);
           setCurrentLocation(newLocation);
+          currentLocationRef.current = newLocation; // Update ref for interval
           setCurrentSpeed(location.coords.speed || 0);
 
           // Add to route path for map visualization
@@ -189,21 +348,90 @@ export default function RecordScreen() {
             longitude: location.coords.longitude,
           };
 
-          setRoutePath((prevPath) => [...prevPath, newPoint]);
+          setRoutePath((prevPath) => {
+            console.log(
+              `Adding to route path. Previous length: ${prevPath.length}`
+            );
+            return [...prevPath, newPoint];
+          });
+
+          // Calculate distance from last sent location
+          if (lastSentLocation) {
+            const distance = calculateDistance(
+              lastSentLocation.lat,
+              lastSentLocation.lng,
+              newLocation.lat,
+              newLocation.lng
+            );
+
+            console.log(
+              `Distance from last sent location: ${distance.toFixed(2)}m`
+            );
+
+            // Check if we should send point based on 5-second interval
+            const now = Date.now();
+            const timeSinceLastSent = lastSentTimeRef.current
+              ? now - lastSentTimeRef.current
+              : 0;
+            const shouldSendByTime = timeSinceLastSent >= 5000; // 5 seconds
+
+            console.log(
+              `Time since last sent: ${(timeSinceLastSent / 1000).toFixed(1)}s`
+            );
+
+            // Send directly to backend if recording and 5 seconds have passed
+            if (recordingStateRef.current === "recording" && shouldSendByTime) {
+              const pathPoint = {
+                lat: newLocation.lat,
+                lng: newLocation.lng,
+                timestamp: new Date().toISOString(),
+              };
+
+              console.log(
+                `🔵 TIME THRESHOLD MET: ${(timeSinceLastSent / 1000).toFixed(
+                  1
+                )}s - Sending point directly to backend`,
+                pathPoint
+              );
+
+              // Send directly to backend instead of storing in array
+              await updateTripPathDirectly(pathPoint);
+              setLastSentLocation(newLocation);
+              lastSentTimeRef.current = now;
+            } else if (recordingStateRef.current !== "recording") {
+              console.log(
+                `⚪ Not recording (state: ${recordingStateRef.current}) - not sending to backend`
+              );
+            } else {
+              console.log(
+                `⚪ Time threshold not met: ${(
+                  timeSinceLastSent / 1000
+                ).toFixed(1)}s < 5s - not sending to backend`
+              );
+            }
+          } else {
+            console.log("No lastSentLocation - first update");
+
+            // If we're recording and this is the first update, set as last sent location and time
+            if (recordingStateRef.current === "recording") {
+              setLastSentLocation(newLocation);
+              lastSentTimeRef.current = Date.now();
+              console.log(
+                "Set initial lastSentLocation and time for recording"
+              );
+            }
+          }
 
           // Update map region to follow user
           if (mapRef.current && recordingState === "recording") {
             try {
               // Center map on current location with smooth animation
-              const cameraPosition = {
-                coordinates: {
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                },
-                zoom: 15,
-              };
-
-              mapRef.current.setCameraPosition(cameraPosition);
+              mapRef.current.animateToRegion({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              });
             } catch (error) {
               console.log("Map animation error:", error);
             }
@@ -212,44 +440,67 @@ export default function RecordScreen() {
       );
       setLocationSubscription(subscription);
 
-      // Update path to backend every 10 seconds
-      const interval = setInterval(async () => {
-        if (recordingState === "recording" && currentTrip) {
-          await updateTripPath();
-        }
-      }, 10000);
-      setUpdateInterval(interval);
+      console.log(
+        "Location tracking started - points will be sent directly to backend"
+      );
     } catch (error) {
       console.error("Error starting location tracking:", error);
     }
   };
 
-  const updateTripPath = async () => {
-    if (!currentTrip || !currentLocation) return;
+  // Function to send point directly to backend
+  const updateTripPathDirectly = async (point) => {
+    const currentTripData = currentTripRef.current;
+    if (!currentTripData || !currentTripData._id || !userId) {
+      console.log("Cannot send point directly - missing:", {
+        trip: !!currentTripData,
+        tripId: currentTripData?._id,
+        userId: !!userId,
+      });
+      return;
+    }
 
     try {
       const token = await SecureStore.getItemAsync("access_token");
+      if (!token) {
+        console.log("No token found for direct update");
+        return;
+      }
+
+      console.log("Sending point directly to backend:", point);
+      console.log("Using trip ID:", currentTripData._id);
+
       const response = await fetch(
-        `https://vroom-api.vercel.app/api/trips/${currentTrip._id}`,
+        `https://vroom-api.vercel.app/api/trips/${currentTripData._id}/edit`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "x-user-id": userId,
           },
-          body: JSON.stringify(currentLocation),
+          body: JSON.stringify(point),
         }
       );
 
       if (response.ok) {
-        const data = await response.json();
-        // Update local distance if backend provides it
-        if (data.trip && data.trip.distance) {
-          setDistance(data.trip.distance);
+        const result = await response.json();
+        console.log("Point added successfully to backend:", result);
+        console.log(
+          "Current path length:",
+          result.data?.path?.length || "unknown"
+        );
+
+        // Update the current trip in state with the new path
+        if (result.data) {
+          setCurrentTrip(result.data);
         }
+      } else {
+        const errorText = await response.text();
+        console.log("Direct point update failed:", response.status, errorText);
       }
     } catch (error) {
-      console.error("Error updating trip path:", error);
+      console.log("Error sending point directly:", error);
     }
   };
 
@@ -271,43 +522,124 @@ export default function RecordScreen() {
   };
 
   const endTrip = async () => {
-    if (!currentTrip || !currentLocation) return;
+    if (!currentTrip) {
+      Alert.alert("Error", "No active trip found");
+      return;
+    }
+
+    // Get current location before ending
+    let endLocation = currentLocation;
+    try {
+      if (!endLocation || !endLocation.lat || !endLocation.lng) {
+        console.log("Getting fresh location for trip end...");
+        endLocation = await getCurrentLocation();
+      }
+
+      console.log("End location:", endLocation);
+    } catch (error) {
+      console.error("Failed to get end location:", error);
+      Alert.alert("Error", "Unable to get current location. Please try again.");
+      return;
+    }
 
     Alert.alert("End Trip", "Do you want to make this trip public?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Private",
-        onPress: () => finishTrip(false),
+        onPress: () => finishTrip(false, endLocation),
         style: "default",
       },
       {
         text: "Public",
-        onPress: () => finishTrip(true),
+        onPress: () => finishTrip(true, endLocation),
         style: "default",
       },
     ]);
   };
 
-  const finishTrip = async (isPublic) => {
+  const finishTrip = async (isPublic, endLocation) => {
     setLoading(true);
     try {
+      // Check if we have a valid trip using ref
+      const currentTripData = currentTripRef.current;
+      if (!currentTripData || !currentTripData._id) {
+        console.error("No current trip found, cannot finish trip");
+        Alert.alert(
+          "Error",
+          "No active trip found. Please start a trip first."
+        );
+        setLoading(false);
+        return;
+      }
+
       const token = await SecureStore.getItemAsync("access_token");
+      if (!token) {
+        console.error("No token found");
+        Alert.alert(
+          "Error",
+          "Authentication token not found. Please login again."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Check if we have userId
+      if (!userId) {
+        console.error("No userId found");
+        Alert.alert("Error", "User ID not found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      // Use the passed endLocation or get fresh location
+      let locationToUse = endLocation;
+      if (!locationToUse || !locationToUse.lat || !locationToUse.lng) {
+        console.log("Getting fresh location in finishTrip...");
+        locationToUse = await getCurrentLocation();
+      }
+
+      console.log("Final location for trip end:", locationToUse);
+
+      // Ensure coordinates are numbers
+      const endPointData = {
+        lat: Number(locationToUse.lat),
+        lng: Number(locationToUse.lng),
+      };
+
+      console.log("Processed endPoint data:", endPointData);
+
+      const requestBody = {
+        endPoint: endPointData,
+        isPublic: isPublic,
+      };
+
+      console.log(
+        "Request body being sent:",
+        JSON.stringify(requestBody, null, 2)
+      );
+      console.log("Trip ID:", currentTripData._id);
+      console.log("User ID:", userId);
+      console.log(
+        "API URL:",
+        `https://vroom-api.vercel.app/api/trips/${currentTripData._id}/end`
+      );
+
+      // Use the /end endpoint directly as it's more appropriate for ending trips
       const response = await fetch(
-        `https://vroom-api.vercel.app/api/trips/${currentTrip._id}/end`,
+        `https://vroom-api.vercel.app/api/trips/${currentTripData._id}/end`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "x-user-id": userId, // Add required header
           },
-          body: JSON.stringify({
-            endPoint: currentLocation,
-            isPublic: isPublic,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
       const data = await response.json();
+      console.log("End trip response:", data);
 
       if (response.ok) {
         // Cleanup
@@ -320,36 +652,68 @@ export default function RecordScreen() {
           setUpdateInterval(null);
         }
 
+        // Clear 5-second interval
+        if (intervalId) {
+          clearInterval(intervalId);
+          setIntervalId(null);
+          console.log("Cleared 5-second interval");
+        }
+
         // Reset state
         setRecordingState("idle");
+        recordingStateRef.current = "idle";
         setCurrentTrip(null);
+        currentTripRef.current = null;
         setStartTime(null);
         setDuration(0);
-        setDistance(data.trip.distance || 0);
+        lastSentTimeRef.current = null; // Reset timer
+
+        // Handle different response structures
+        let tripData = null;
+        if (data.trip) {
+          tripData = data.trip;
+        } else if (data.data && data.data.trip) {
+          tripData = data.data.trip;
+        } else if (data._id) {
+          // Response is the trip object directly
+          tripData = data;
+        }
+
+        setDistance(tripData?.distance || 0);
         setRoutePath([]);
         setInitialRegion(null);
+        setLastSentLocation(null); // Reset last sent location
 
         Alert.alert(
           "Trip Completed!",
-          `Distance: ${(data.trip.distance / 1000).toFixed(
-            2
-          )} km\nDuration: ${formatDuration(data.trip.duration)}`,
+          tripData
+            ? `Distance: ${(tripData.distance / 1000).toFixed(
+                2
+              )} km\nDuration: ${formatDuration(tripData.duration)}`
+            : "Trip completed successfully!",
           [
             {
               text: "OK",
-              onPress: () =>
-                navigation.navigate("CreatePostScreen", {
-                  tripData: data.trip,
-                }),
+              onPress: () => {
+                if (tripData) {
+                  navigation.navigate("CreatePostScreen", {
+                    tripData: tripData,
+                  });
+                } else {
+                  // Navigate back if no trip data
+                  navigation.goBack();
+                }
+              },
             },
           ]
         );
       } else {
+        console.error("API Error Response:", data);
         Alert.alert("Error", data.message || "Failed to end trip");
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to end trip. Please try again.");
       console.error("End trip error:", error);
+      Alert.alert("Error", "Failed to end trip. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -379,15 +743,12 @@ export default function RecordScreen() {
   const centerMapOnCurrentLocation = () => {
     if (mapRef.current && currentLocation) {
       try {
-        const cameraPosition = {
-          coordinates: {
-            latitude: currentLocation.lat,
-            longitude: currentLocation.lng,
-          },
-          zoom: 15,
-        };
-
-        mapRef.current.setCameraPosition(cameraPosition);
+        mapRef.current.animateToRegion({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
       } catch (error) {
         console.log("Map center error:", error);
       }
@@ -410,108 +771,42 @@ export default function RecordScreen() {
       {/* Map Container */}
       {initialRegion ? (
         <View style={styles.mapContainer}>
-          {Platform.OS === "ios" ? (
-            <AppleMaps.View
-              ref={mapRef}
-              style={styles.map}
-              cameraPosition={{
-                coordinates: {
-                  latitude: initialRegion.latitude,
-                  longitude: initialRegion.longitude,
-                },
-                zoom: 15,
-              }}
-              properties={{
-                isTrafficEnabled: false,
-                mapType: AppleMapsMapType.STANDARD,
-                selectionEnabled: true,
-              }}
-              polylines={
-                routePath.length > 1
-                  ? [
-                      {
-                        coordinates: routePath,
-                        color: "#007AFF",
-                        width: 4,
-                      },
-                    ]
-                  : []
-              }
-              markers={
-                currentLocation
-                  ? [
-                      {
-                        coordinates: {
-                          latitude: currentLocation.lat,
-                          longitude: currentLocation.lng,
-                        },
-                        title: "Current Location",
-                        tintColor: "red",
-                        systemImage: "location.fill",
-                      },
-                    ]
-                  : []
-              }
-              onMapClick={(e) => {
-                console.log("Map clicked:", e);
-              }}
-            />
-          ) : Platform.OS === "android" ? (
-            <GoogleMaps.View
-              ref={mapRef}
-              style={styles.map}
-              cameraPosition={{
-                coordinates: {
-                  latitude: initialRegion.latitude,
-                  longitude: initialRegion.longitude,
-                },
-                zoom: 15,
-              }}
-              properties={{
-                isBuildingEnabled: true,
-                isIndoorEnabled: true,
-                mapType: GoogleMapsMapType.NORMAL,
-                selectionEnabled: true,
-                isMyLocationEnabled: false,
-                isTrafficEnabled: false,
-              }}
-              polylines={
-                routePath.length > 1
-                  ? [
-                      {
-                        coordinates: routePath,
-                        color: "#007AFF",
-                        width: 4,
-                      },
-                    ]
-                  : []
-              }
-              markers={
-                currentLocation
-                  ? [
-                      {
-                        coordinates: {
-                          latitude: currentLocation.lat,
-                          longitude: currentLocation.lng,
-                        },
-                        title: "Current Location",
-                        snippet: "You are here",
-                        draggable: false,
-                      },
-                    ]
-                  : []
-              }
-              onMapClick={(e) => {
-                console.log("Map clicked:", e);
-              }}
-            />
-          ) : (
-            <View style={styles.mapPlaceholder}>
-              <Text style={styles.mapPlaceholderText}>
-                Maps only available on iOS and Android
-              </Text>
-            </View>
-          )}
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={initialRegion}
+            showsUserLocation={false}
+            showsMyLocationButton={false}
+            showsTraffic={false}
+            mapType="standard"
+            onPress={(e) => {
+              console.log("Map clicked:", e.nativeEvent.coordinate);
+            }}
+          >
+            {/* Polyline for route */}
+            {routePath.length > 1 && (
+              <Polyline
+                coordinates={routePath}
+                strokeColor="#007AFF"
+                strokeWidth={4}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+
+            {/* Current location marker */}
+            {currentLocation && (
+              <Marker
+                coordinate={{
+                  latitude: currentLocation.lat,
+                  longitude: currentLocation.lng,
+                }}
+                title="Current Location"
+                description="You are here"
+                pinColor="red"
+              />
+            )}
+          </MapView>
 
           {/* Map Controls */}
           <View style={styles.mapControls}>
@@ -566,6 +861,10 @@ export default function RecordScreen() {
           </View>
           <Text style={styles.gpsCoords}>
             {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+          </Text>
+          <Text style={styles.gpsCoords}>
+            Path Points: {currentTrip?.path?.length || 0} | Route:{" "}
+            {routePath.length}
           </Text>
         </View>
       )}
