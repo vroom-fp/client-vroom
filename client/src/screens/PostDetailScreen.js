@@ -31,6 +31,9 @@ export default function PostDetailScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [userId, setUserId] = useState(null);
   const [saved, setSaved] = useState(false);
 
   const fetchPostDetail = async () => {
@@ -60,19 +63,26 @@ export default function PostDetailScreen() {
       if (data && data._id) {
         // Direct post object
         setPost(data);
+        setLikeCount(data.likeCount || 0);
       } else if (data.post) {
         // Wrapped in post property
         setPost(data.post);
+        setLikeCount(data.post.likeCount || 0);
       } else if (data.data) {
         // Wrapped in data property
         setPost(data.data);
+        setLikeCount(data.data.likeCount || 0);
       } else if (data.success && data.post) {
         // Success wrapper
         setPost(data.post);
+        setLikeCount(data.post.likeCount || 0);
       } else {
         console.error("Unexpected response structure:", data);
         setError("Post not found");
       }
+
+      // After setting post, we'll check like status in a separate useEffect
+      // when userId is available
     } catch (err) {
       console.error("Fetch post detail error:", err);
       setError("Failed to load post details");
@@ -89,7 +99,111 @@ export default function PostDetailScreen() {
 
   useEffect(() => {
     fetchPostDetail();
+    fetchUserId();
   }, [postId]);
+
+  // Check like status when userId is available
+  useEffect(() => {
+    if (userId && post) {
+      checkLikeStatus();
+    }
+  }, [userId, post]);
+
+  // Function to get user ID from profile API
+  const fetchUserId = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      if (!token) return;
+
+      const response = await fetch("https://vroom-api.vercel.app/api/profile", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user && data.user._id) {
+          setUserId(data.user._id);
+          console.log("User ID fetched for likes:", data.user._id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user ID:", error);
+    }
+  };
+
+  // Check if user has liked this post
+  const checkLikeStatus = async () => {
+    if (!userId) return;
+
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      const response = await fetch(
+        `https://vroom-api.vercel.app/api/likes?postId=${postId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "x-user-id": userId,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Like status response:", data);
+        if (data.success) {
+          setLiked(data.isLiked);
+          setLikeCount(data.likeCount);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking like status:", error);
+    }
+  };
+
+  // Toggle like/unlike
+  const handleLike = async () => {
+    if (!userId || likeLoading) return;
+
+    setLikeLoading(true);
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      const response = await fetch("https://vroom-api.vercel.app/api/likes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-user-id": userId,
+        },
+        body: JSON.stringify({
+          postId: postId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Toggle like response:", data);
+        if (data.success) {
+          setLiked(data.isLiked);
+          setLikeCount(data.likeCount);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error("Like toggle failed:", errorData);
+        // Could show an alert here if needed
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      // Could show an alert here if needed
+    } finally {
+      setLikeLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -163,11 +277,6 @@ export default function PostDetailScreen() {
       : "0";
 
   const images = post.imageUrls || (post.imageUrl ? [post.imageUrl] : []);
-
-  const handleLike = () => {
-    setLiked(!liked);
-    // TODO: Implement API call to like/unlike post
-  };
 
   const handleSave = () => {
     setSaved(!saved);
@@ -536,6 +645,7 @@ export default function PostDetailScreen() {
           <TouchableOpacity
             style={[styles.actionButton, liked && styles.actionButtonActive]}
             onPress={handleLike}
+            disabled={likeLoading}
           >
             <Ionicons
               name={liked ? "heart" : "heart-outline"}
@@ -543,7 +653,9 @@ export default function PostDetailScreen() {
               color={liked ? "#ff3b30" : "#007AFF"}
             />
             <Text style={[styles.actionText, liked && styles.actionTextActive]}>
-              {liked ? "Liked" : "Like"}
+              {likeLoading
+                ? "..."
+                : `${likeCount} ${likeCount === 1 ? "Like" : "Likes"}`}
             </Text>
           </TouchableOpacity>
 
