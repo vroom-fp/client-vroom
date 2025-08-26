@@ -295,8 +295,6 @@ export default function RecordScreen() {
 
         setIntervalId(id);
         console.log("Started 5-second interval for sending points");
-
-        Alert.alert("Trip Started", "Recording your route...");
       } else {
         Alert.alert("Error", data.message || "Failed to start trip");
       }
@@ -542,19 +540,8 @@ export default function RecordScreen() {
       return;
     }
 
-    Alert.alert("End Trip", "Do you want to make this trip public?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Private",
-        onPress: () => finishTrip(false, endLocation),
-        style: "default",
-      },
-      {
-        text: "Public",
-        onPress: () => finishTrip(true, endLocation),
-        style: "default",
-      },
-    ]);
+    // Automatically finish trip as public
+    finishTrip(true, endLocation);
   };
 
   const finishTrip = async (isPublic, endLocation) => {
@@ -684,29 +671,15 @@ export default function RecordScreen() {
         setInitialRegion(null);
         setLastSentLocation(null); // Reset last sent location
 
-        Alert.alert(
-          "Trip Completed!",
-          tripData
-            ? `Distance: ${(tripData.distance / 1000).toFixed(
-                2
-              )} km\nDuration: ${formatDuration(tripData.duration)}`
-            : "Trip completed successfully!",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                if (tripData) {
-                  navigation.navigate("CreatePostScreen", {
-                    tripData: tripData,
-                  });
-                } else {
-                  // Navigate back if no trip data
-                  navigation.goBack();
-                }
-              },
-            },
-          ]
-        );
+        // Navigate directly to CreatePostScreen without alert
+        if (tripData) {
+          navigation.navigate("CreatePostScreen", {
+            tripData: tripData,
+          });
+        } else {
+          // Navigate back if no trip data
+          navigation.goBack();
+        }
       } else {
         console.error("API Error Response:", data);
         Alert.alert("Error", data.message || "Failed to end trip");

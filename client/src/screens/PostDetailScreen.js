@@ -983,22 +983,6 @@ function PostDetailScreen() {
                 {comments.length === 1 ? "Comment" : "Comments"}
               </Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, saved && styles.actionButtonActive]}
-              onPress={handleSave}
-            >
-              <Ionicons
-                name={saved ? "bookmark" : "bookmark-outline"}
-                size={20}
-                color={saved ? "#007AFF" : "#007AFF"}
-              />
-              <Text
-                style={[styles.actionText, saved && styles.actionTextActive]}
-              >
-                {saved ? "Saved" : "Save"}
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Comments Section */}

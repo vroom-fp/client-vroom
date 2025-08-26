@@ -263,31 +263,11 @@ export default function CreatePostScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert(
-          "Post Created!",
-          "Your trip post has been shared successfully!",
-          [
-            {
-              text: "View Posts",
-              onPress: () => {
-                // Navigate back to TabNavigator and switch to PostNavigator tab
-                navigation.navigate("TabNavigator", {
-                  screen: "PostNavigator",
-                  params: { screen: "PostScreen" },
-                });
-              },
-            },
-            {
-              text: "Stay Here",
-              style: "cancel",
-              onPress: () => {
-                // Clear form for new post
-                setCaption("");
-                setSelectedImages([]);
-              },
-            },
-          ]
-        );
+        // Navigate back to TabNavigator and switch to PostNavigator tab
+        navigation.navigate("TabNavigator", {
+          screen: "PostNavigator",
+          params: { screen: "PostScreen" },
+        });
       } else {
         Alert.alert("Error", data.message || "Failed to create post");
       }

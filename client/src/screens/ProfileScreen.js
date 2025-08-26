@@ -368,7 +368,14 @@ export default function ProfileScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <View style={styles.headerLeft}></View>
           <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity
+            style={styles.logoutIconButton}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {/* Profile Info Section */}
@@ -384,20 +391,10 @@ export default function ProfileScreen() {
               }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={styles.avatarEditButton}>
-              <Ionicons name="camera" size={16} color="#000" />
-            </TouchableOpacity>
           </View>
 
           <Text style={styles.name}>{userProfile.name}</Text>
           <Text style={styles.email}>{userProfile.email}</Text>
-
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={handleEditProfile}
-          >
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Stats Section */}
@@ -440,42 +437,6 @@ export default function ProfileScreen() {
               ]}
             >
               My Posts
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "liked" && styles.activeTab]}
-            onPress={() => setActiveTab("liked")}
-          >
-            <Ionicons
-              name="heart-outline"
-              size={20}
-              color={activeTab === "liked" ? "#fff" : "#888"}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "liked" && styles.activeTabText,
-              ]}
-            >
-              Liked
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "saved" && styles.activeTab]}
-            onPress={() => setActiveTab("saved")}
-          >
-            <Ionicons
-              name="bookmark-outline"
-              size={20}
-              color={activeTab === "saved" ? "#fff" : "#888"}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "saved" && styles.activeTabText,
-              ]}
-            >
-              Saved
             </Text>
           </TouchableOpacity>
         </View>
@@ -558,14 +519,6 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#888" />
           </TouchableOpacity>
         </View>
-
-        {/* Logout Button */}
-        <View style={styles.logoutSection}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#fff" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
       <StatusBar style="light" />
@@ -590,17 +543,22 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#222",
   },
+  headerLeft: {
+    width: 40, // Same width as logout button for balance
+  },
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
+    flex: 1,
+    textAlign: "center",
   },
   profileSection: {
     alignItems: "center",
@@ -912,22 +870,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginLeft: 16,
   },
-  logoutSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ff4444",
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
+  logoutIconButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 68, 68, 0.2)",
   },
 });

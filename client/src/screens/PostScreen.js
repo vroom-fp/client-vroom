@@ -19,6 +19,13 @@ import * as SecureStore from "expo-secure-store";
 const { width } = Dimensions.get("window");
 
 export default function PostScreen() {
+  const { useFocusEffect } = require("@react-navigation/native");
+  const ReactUseCallback = React.useCallback;
+  useFocusEffect(
+    ReactUseCallback(() => {
+      fetchPosts();
+    }, [])
+  );
   const navigation = useNavigation();
   const [posts, setPosts] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -479,14 +486,13 @@ export default function PostScreen() {
             style={styles.actionButton}
             onPress={(e) => {
               e.stopPropagation(); // Prevent navigation to detail screen
-              navigation.navigate("PostDetail", { postId: item._id });
+              navigation.navigate("PostDetailScreen", { postId: item._id });
             }}
           >
             <Ionicons name="chatbubbles-outline" size={18} color="#007AFF" />
             <Text style={styles.actionText}>
-              {item.commentCount || 0}
-              {""}
-              {(item.commentCount || 0) === 1 ? "" : ""}
+              {item.commentCount || 0}{" "}
+              {(item.commentCount || 0) === 1 ? "Comment" : "Comments"}
             </Text>
           </TouchableOpacity>
         </View>
