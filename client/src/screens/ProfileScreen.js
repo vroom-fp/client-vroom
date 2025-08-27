@@ -13,10 +13,10 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import AuthContext from "../contexts/AuthContext";
 
@@ -31,9 +31,163 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("posts"); // posts, liked, saved
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserProfile();
+    }, [])
+  );
+
+  // Additional focus effect to refresh follow counts when returning from other screens
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh follow counts if user profile is already loaded
+      if (userProfile?.id && !loading) {
+        console.log("Screen focused, refreshing follow counts...");
+        refreshFollowCounts();
+      }
+    }, [userProfile?.id, loading])
+  );
+
+  // Listen for navigation events to detect when coming back from SearchScreen
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    const unsubscribe = navigation.addListener("focus", () => {
+      // Check if we're returning from a screen where follow actions might have occurred
+      const navigationState = navigation.getState();
+      const currentRoute = navigationState.routes[navigationState.index];
+
+      console.log("Navigation focus detected", {
+        routeName: currentRoute.name,
+        params: currentRoute.params,
+        hasUserProfile: !!userProfile?.id,
+        isLoading: loading,
+      });
+
+      // Delay to ensure the screen is fully focused and avoid race conditions
+      setTimeout(() => {
+        if (userProfile?.id && !loading) {
+          console.log("Refreshing follow counts after navigation focus...");
+          refreshFollowCounts();
+        }
+      }, 200);
+    });
+
+    return unsubscribe;
+  }, [navigation, userProfile?.id, loading]);
+
+  // Also listen for params changes that might indicate follow updates
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("state", (e) => {
+      const currentRoute = e.data.state.routes[e.data.state.index];
+      if (
+        currentRoute.name === "Profile" &&
+        currentRoute.params?.refreshFollow
+      ) {
+        console.log("Received refreshFollow parameter, updating counts...");
+        if (userProfile?.id && !loading) {
+          refreshFollowCounts();
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, userProfile?.id, loading]);
+
+  const getCurrentUserId = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      if (token) {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+        const userData = JSON.parse(jsonPayload);
+        return userData.id;
+      }
+    } catch (error) {
+      console.log("Error getting current user ID:", error);
+    }
+    return null;
+  };
+
+  const fetchFollowCounts = async (userId) => {
+    if (!userId) return { followersCount: 0, followingCount: 0 };
+
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+
+      // Fetch followers count
+      const followersResponse = await fetch(
+        `https://vroom-api.vercel.app/api/follow?userId=${userId}&type=followers`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Fetch following count
+      const followingResponse = await fetch(
+        `https://vroom-api.vercel.app/api/follow?userId=${userId}&type=following`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      let followersCount = 0;
+      let followingCount = 0;
+
+      if (followersResponse.ok) {
+        const followersData = await followersResponse.json();
+        followersCount = followersData.total || 0;
+        console.log("Followers count:", followersCount);
+      }
+
+      if (followingResponse.ok) {
+        const followingData = await followingResponse.json();
+        followingCount = followingData.total || 0;
+        console.log("Following count:", followingCount);
+      }
+
+      console.log("Final follow counts:", { followersCount, followingCount });
+      return { followersCount, followingCount };
+    } catch (error) {
+      console.log("Error fetching follow counts:", error);
+      return { followersCount: 0, followingCount: 0 };
+    }
+  };
+
+  const refreshFollowCounts = async () => {
+    if (!userProfile?.id) return;
+
+    try {
+      const { followersCount, followingCount } = await fetchFollowCounts(
+        userProfile.id
+      );
+      setUserProfile((prev) => ({
+        ...prev,
+        followersCount,
+        followingCount,
+      }));
+      console.log("Refreshed follow counts:", {
+        followersCount,
+        followingCount,
+      });
+    } catch (error) {
+      console.log("Error refreshing follow counts:", error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -68,6 +222,12 @@ export default function ProfileScreen() {
         console.log("Profile API response:", data);
 
         if (data.user) {
+          // Get real followers/following counts
+          const userId = data.user._id;
+          const { followersCount, followingCount } = await fetchFollowCounts(
+            userId
+          );
+
           // Set user profile data
           setUserProfile({
             id: data.user._id,
@@ -75,8 +235,8 @@ export default function ProfileScreen() {
             email: data.user.email,
             avatar: data.user.avatar || data.user.profilePicture || null,
             postsCount: data.user.posts?.length || 0,
-            followersCount: data.user.followersCount || 0,
-            followingCount: data.user.followingCount || 0,
+            followersCount: followersCount,
+            followingCount: followingCount,
             bio: data.user.bio || "",
             location: data.user.location || "",
             website: data.user.website || "",
@@ -122,14 +282,19 @@ export default function ProfileScreen() {
           const userData = JSON.parse(jsonPayload);
           console.log("Using JWT fallback data:", userData);
 
+          // Get real followers/following counts even in fallback
+          const { followersCount, followingCount } = await fetchFollowCounts(
+            userData.id
+          );
+
           setUserProfile({
             id: userData.id,
             name: userData.name || userData.username || "User",
             email: userData.email,
             avatar: null,
             postsCount: 0,
-            followersCount: 0,
-            followingCount: 0,
+            followersCount: followersCount,
+            followingCount: followingCount,
           });
           setUserPosts([]);
         }
@@ -186,16 +351,16 @@ export default function ProfileScreen() {
         : `${durationMin}m`;
 
     return (
-      <View style={styles.postCard}>
+      <TouchableOpacity
+        style={styles.postCard}
+        activeOpacity={0.8}
+        onPress={() =>
+          navigation.navigate("PostDetailScreen", { postId: item._id })
+        }
+      >
         <View style={styles.postHeader}>
           <Text style={styles.postDate}>{createdAt}</Text>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("PostDetailScreen", { postId: item._id })
-            }
-          >
-            <Ionicons name="chevron-forward" size={20} color="#888" />
-          </TouchableOpacity>
+          <Ionicons name="chevron-forward" size={20} color="#888" />
         </View>
 
         <Text style={styles.postCaption}>{item.caption}</Text>
@@ -333,7 +498,7 @@ export default function ProfileScreen() {
             <Text style={styles.postStatText}>{durationStr}</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -345,7 +510,6 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Loading profile from API...</Text>
         </View>
       </SafeAreaView>
     );
@@ -506,19 +670,7 @@ export default function ProfileScreen() {
         )}
 
         {/* Menu Items */}
-        <View style={styles.menuSection}>
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="notifications-outline" size={20} color="#fff" />
-            <Text style={styles.menuText}>Notifications</Text>
-            <Ionicons name="chevron-forward" size={20} color="#888" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={20} color="#fff" />
-            <Text style={styles.menuText}>Settings</Text>
-            <Ionicons name="chevron-forward" size={20} color="#888" />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.menuSection}></View>
       </ScrollView>
 
       <StatusBar style="light" />
@@ -873,6 +1025,6 @@ const styles = StyleSheet.create({
   logoutIconButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 68, 68, 0.2)",
+    backgroundColor: "black",
   },
 });

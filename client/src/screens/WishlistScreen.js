@@ -599,7 +599,6 @@ export default function WishlistScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Loading your wishlist...</Text>
         </View>
       </SafeAreaView>
     );
