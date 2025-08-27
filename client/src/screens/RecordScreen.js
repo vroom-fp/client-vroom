@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -729,330 +730,383 @@ export default function RecordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Record Trip</Text>
-      </View>
-
-      {/* Map Container */}
-      {initialRegion ? (
-        <View style={styles.mapContainer}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={initialRegion}
-            showsUserLocation={false}
-            showsMyLocationButton={false}
-            showsTraffic={false}
-            mapType="standard"
-            onPress={(e) => {
-              console.log("Map clicked:", e.nativeEvent.coordinate);
-            }}
-          >
-            {/* Polyline for route */}
-            {routePath.length > 1 && (
-              <Polyline
-                coordinates={routePath}
-                strokeColor="#007AFF"
-                strokeWidth={4}
-                lineCap="round"
-                lineJoin="round"
-              />
-            )}
-
-            {/* Current location marker */}
-            {currentLocation && (
-              <Marker
-                coordinate={{
-                  latitude: currentLocation.lat,
-                  longitude: currentLocation.lng,
-                }}
-                title="Current Location"
-                description="You are here"
-                pinColor="red"
-              />
-            )}
-          </MapView>
-
-          {/* Map Controls */}
-          <View style={styles.mapControls}>
-            <TouchableOpacity
-              style={styles.mapControlButton}
-              onPress={centerMapOnCurrentLocation}
-            >
-              <Ionicons name="locate" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.emptyMapContainer}>
-          <Ionicons name="map" size={80} color="#666" />
-          <Text style={styles.emptyMapText}>Start recording to view map</Text>
-        </View>
-      )}
-
-      {/* Stats Container */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Duration</Text>
-          <Text style={styles.statValue}>{formatDuration(duration)}</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Distance</Text>
-          <Text style={styles.statValue}>
-            {(distance / 1000).toFixed(2)} km
-          </Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Speed</Text>
-          <Text style={styles.statValue}>{formatSpeed(currentSpeed)}</Text>
-        </View>
-      </View>
-
-      {/* GPS Status */}
-      {recordingState !== "idle" && currentLocation && (
-        <View style={styles.gpsContainer}>
-          <View style={styles.gpsHeader}>
-            <Ionicons name="location" size={16} color="#00ff00" />
-            <Text style={styles.gpsText}>GPS Active</Text>
-            <View
-              style={[
-                styles.statusDot,
-                recordingState === "recording" && styles.statusRecording,
-                recordingState === "paused" && styles.statusPaused,
-              ]}
-            />
-          </View>
-          <Text style={styles.gpsCoords}>
-            {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
-          </Text>
-          <Text style={styles.gpsCoords}>
-            Path Points: {currentTrip?.path?.length || 0} | Route:{" "}
-            {routePath.length}
-          </Text>
-        </View>
-      )}
-
-      {/* Control Buttons */}
-      <View style={styles.controlsContainer}>
-        {recordingState === "idle" && (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity
-            style={[styles.controlButton, styles.startButton]}
-            onPress={startTrip}
-            disabled={loading || !locationPermission}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <>
-                <Ionicons name="play" size={24} color="#000" />
-                <Text style={styles.controlButtonText}>Start Recording</Text>
-              </>
-            )}
+            <Ionicons name="arrow-back" size={24} color="#F4D03F" />
           </TouchableOpacity>
-        )}
+          <Text style={styles.headerTitle}>Record Trip</Text>
+        </View>
 
-        {recordingState === "recording" && (
-          <View style={styles.recordingControls}>
-            <TouchableOpacity
-              style={[styles.controlButton, styles.pauseButton]}
-              onPress={pauseTrip}
+        {/* Map Container */}
+        {initialRegion ? (
+          <View style={styles.mapContainer}>
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              initialRegion={initialRegion}
+              showsUserLocation={false}
+              showsMyLocationButton={false}
+              showsTraffic={false}
+              mapType="standard"
+              onPress={(e) => {
+                console.log("Map clicked:", e.nativeEvent.coordinate);
+              }}
             >
-              <Ionicons name="pause" size={24} color="#fff" />
-              <Text style={[styles.controlButtonText, { color: "#fff" }]}>
-                Pause
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.controlButton, styles.stopButton]}
-              onPress={endTrip}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="stop" size={24} color="#fff" />
-                  <Text style={[styles.controlButtonText, { color: "#fff" }]}>
-                    End Trip
-                  </Text>
-                </>
+              {/* Polyline for route */}
+              {routePath.length > 1 && (
+                <Polyline
+                  coordinates={routePath}
+                  strokeColor="#F4D03F"
+                  strokeWidth={4}
+                  lineCap="round"
+                  lineJoin="round"
+                />
               )}
-            </TouchableOpacity>
+
+              {/* Current location marker */}
+              {currentLocation && (
+                <Marker
+                  coordinate={{
+                    latitude: currentLocation.lat,
+                    longitude: currentLocation.lng,
+                  }}
+                  title="Current Location"
+                  description="You are here"
+                  pinColor="#F4D03F"
+                />
+              )}
+            </MapView>
+
+            {/* Map Controls */}
+            <View style={styles.mapControls}>
+              <TouchableOpacity
+                style={styles.mapControlButton}
+                onPress={centerMapOnCurrentLocation}
+              >
+                <Ionicons name="locate" size={20} color="#F4D03F" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.emptyMapContainer}>
+            <Ionicons name="map" size={80} color="#999999" />
+            <Text style={styles.emptyMapText}>Start recording to view map</Text>
           </View>
         )}
 
-        {recordingState === "paused" && (
-          <View style={styles.recordingControls}>
-            <TouchableOpacity
-              style={[styles.controlButton, styles.resumeButton]}
-              onPress={resumeTrip}
-            >
-              <Ionicons name="play" size={24} color="#000" />
-              <Text style={styles.controlButtonText}>Resume</Text>
-            </TouchableOpacity>
+        {/* Stats Container */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Ionicons
+              name="time-outline"
+              size={20}
+              color="#F4D03F"
+              style={styles.statIcon}
+            />
+            <Text style={styles.statLabel}>Duration</Text>
+            <Text style={styles.statValue}>{formatDuration(duration)}</Text>
+          </View>
 
+          <View style={styles.statCard}>
+            <Ionicons
+              name="walk-outline"
+              size={20}
+              color="#F4D03F"
+              style={styles.statIcon}
+            />
+            <Text style={styles.statLabel}>Distance</Text>
+            <Text style={styles.statValue}>
+              {(distance / 1000).toFixed(2)} km
+            </Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Ionicons
+              name="speedometer-outline"
+              size={20}
+              color="#F4D03F"
+              style={styles.statIcon}
+            />
+            <Text style={styles.statLabel}>Speed</Text>
+            <Text style={styles.statValue}>{formatSpeed(currentSpeed)}</Text>
+          </View>
+        </View>
+
+        {/* GPS Status */}
+        {recordingState !== "idle" && currentLocation && (
+          <View style={styles.gpsContainer}>
+            <View style={styles.gpsHeader}>
+              <Ionicons name="location" size={16} color="#4CAF50" />
+              <Text style={styles.gpsText}>GPS Active</Text>
+              <View
+                style={[
+                  styles.statusDot,
+                  recordingState === "recording" && styles.statusRecording,
+                  recordingState === "paused" && styles.statusPaused,
+                ]}
+              />
+            </View>
+            <Text style={styles.gpsCoords}>
+              {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+            </Text>
+            <Text style={styles.gpsCoords}>
+              Path Points: {currentTrip?.path?.length || 0} | Route:{" "}
+              {routePath.length}
+            </Text>
+          </View>
+        )}
+
+        {/* Control Buttons */}
+        <View style={styles.controlsContainer}>
+          {recordingState === "idle" && (
             <TouchableOpacity
-              style={[styles.controlButton, styles.stopButton]}
-              onPress={endTrip}
-              disabled={loading}
+              style={[styles.controlButton, styles.startButton]}
+              onPress={startTrip}
+              disabled={loading || !locationPermission}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#1A1A1A" />
               ) : (
                 <>
-                  <Ionicons name="stop" size={24} color="#fff" />
-                  <Text style={[styles.controlButtonText, { color: "#fff" }]}>
-                    End Trip
-                  </Text>
+                  <Ionicons name="play" size={24} color="#1A1A1A" />
+                  <Text style={styles.controlButtonText}>Start Recording</Text>
                 </>
               )}
             </TouchableOpacity>
-          </View>
-        )}
-      </View>
+          )}
 
-      {/* Recording Status */}
-      <View style={styles.statusContainer}>
-        <View
-          style={[
-            styles.statusIndicator,
-            recordingState === "recording" && styles.statusRecording,
-            recordingState === "paused" && styles.statusPaused,
-          ]}
-        />
-        <Text style={styles.statusText}>
-          {recordingState === "idle" && "Ready to Record"}
-          {recordingState === "recording" && "Recording..."}
-          {recordingState === "paused" && "Paused"}
-        </Text>
+          {recordingState === "recording" && (
+            <View style={styles.recordingControls}>
+              <TouchableOpacity
+                style={[styles.controlButton, styles.pauseButton]}
+                onPress={pauseTrip}
+              >
+                <Ionicons name="pause" size={24} color="#1A1A1A" />
+                <Text style={[styles.controlButtonText, { color: "#1A1A1A" }]}>
+                  Pause
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.controlButton, styles.stopButton]}
+                onPress={endTrip}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="stop" size={24} color="#FFFFFF" />
+                    <Text
+                      style={[styles.controlButtonText, { color: "#FFFFFF" }]}
+                    >
+                      End Trip
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {recordingState === "paused" && (
+            <View style={styles.recordingControls}>
+              <TouchableOpacity
+                style={[styles.controlButton, styles.resumeButton]}
+                onPress={resumeTrip}
+              >
+                <Ionicons name="play" size={24} color="#1A1A1A" />
+                <Text style={styles.controlButtonText}>Resume</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.controlButton, styles.stopButton]}
+                onPress={endTrip}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="stop" size={24} color="#FFFFFF" />
+                    <Text
+                      style={[styles.controlButtonText, { color: "#FFFFFF" }]}
+                    >
+                      End Trip
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Recording Status */}
+        <View style={styles.statusContainer}>
+          <View
+            style={[
+              styles.statusIndicator,
+              recordingState === "recording" && styles.statusRecording,
+              recordingState === "paused" && styles.statusPaused,
+            ]}
+          />
+          <Text style={styles.statusText}>
+            {recordingState === "idle" && "Ready to Record"}
+            {recordingState === "recording" && "Recording..."}
+            {recordingState === "paused" && "Paused"}
+          </Text>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#1A1A1A",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1A1A1A",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#2A2A2A",
   },
   backButton: {
-    marginRight: 15,
+    width: 40,
+    height: 40,
+    backgroundColor: "#2A2A2A",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    flex: 1,
   },
   mapContainer: {
-    height: 400,
-    margin: 20,
-    marginTop: 10,
-    borderRadius: 12,
+    height: 340,
+    marginHorizontal: 24,
+    marginTop: 24,
+    borderRadius: 16,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#333",
+    backgroundColor: "#2A2A2A",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   map: {
     flex: 1,
   },
-  mapPlaceholder: {
-    flex: 1,
-    backgroundColor: "#222",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mapPlaceholderText: {
-    color: "#888",
-    fontSize: 16,
-  },
   emptyMapContainer: {
-    height: 400,
-    margin: 20,
-    marginTop: 10,
-    borderRadius: 12,
-    backgroundColor: "#111",
+    height: 340,
+    marginHorizontal: 24,
+    marginTop: 24,
+    borderRadius: 16,
+    backgroundColor: "#2A2A2A",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#333",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   emptyMapText: {
-    color: "#666",
+    color: "#999999",
     fontSize: 16,
-    marginTop: 10,
+    marginTop: 16,
+    fontWeight: "500",
   },
   mapControls: {
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: 16,
+    right: 16,
   },
   mapControlButton: {
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "rgba(42, 42, 42, 0.9)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   statsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    marginTop: 24,
+    gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: "#111",
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 5,
+    backgroundColor: "#2A2A2A",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#333",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  statLabel: {
-    color: "#888",
-    fontSize: 14,
+  statIcon: {
     marginBottom: 8,
   },
+  statLabel: {
+    color: "#999999",
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   statValue: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "700",
   },
   gpsContainer: {
-    backgroundColor: "#111",
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#333",
+    backgroundColor: "#2A2A2A",
+    marginHorizontal: 24,
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   gpsHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   gpsText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
     marginLeft: 8,
@@ -1062,22 +1116,23 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#888",
+    backgroundColor: "#999999",
   },
   statusRecording: {
-    backgroundColor: "#ff3b30",
+    backgroundColor: "#FF6B6B",
   },
   statusPaused: {
-    backgroundColor: "#ff9500",
+    backgroundColor: "#F4D03F",
   },
   gpsCoords: {
-    color: "#00ff00",
+    color: "#4CAF50",
     fontSize: 12,
-    fontFamily: "monospace",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    lineHeight: 16,
   },
   controlsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 24,
+    marginTop: 24,
   },
   controlButton: {
     flexDirection: "row",
@@ -1085,48 +1140,59 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   startButton: {
-    backgroundColor: "#fff",
+    backgroundColor: "#F4D03F",
   },
   pauseButton: {
-    backgroundColor: "#ff9500",
+    backgroundColor: "#F4D03F",
+    flex: 1,
+    marginRight: 8,
   },
   resumeButton: {
-    backgroundColor: "#fff",
+    backgroundColor: "#F4D03F",
+    flex: 1,
+    marginRight: 8,
   },
   stopButton: {
-    backgroundColor: "#ff3b30",
+    backgroundColor: "#FF6B6B",
+    flex: 1,
+    marginLeft: 8,
   },
   controlButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     marginLeft: 8,
-    color: "#000",
+    color: "#1A1A1A",
   },
   recordingControls: {
     flexDirection: "row",
-    justifyContent: "space-between",
     gap: 12,
   },
   statusContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 100, // Extra padding for TabNavigator
   },
   statusIndicator: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#888",
+    backgroundColor: "#999999",
     marginRight: 8,
   },
   statusText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 14,
+    fontWeight: "500",
   },
 });

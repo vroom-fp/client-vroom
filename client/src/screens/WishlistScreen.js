@@ -81,10 +81,15 @@ export default function WishlistScreen() {
             console.log("Wishlist is empty - no items to display");
           }
 
-          // Sort items by creation date (newest first) only if array has items
+          // Sort items by visited status (unvisited first, then visited) and creation date
           const sortedItems =
             data.data.length > 0
               ? data.data.sort((a, b) => {
+                  // First sort by visited status (false first, true last)
+                  if (a.isVisited !== b.isVisited) {
+                    return a.isVisited ? 1 : -1;
+                  }
+                  // Then sort by creation date (newest first within each group)
                   const dateA = new Date(a.createdAt || 0);
                   const dateB = new Date(b.createdAt || 0);
                   return dateB - dateA;
@@ -229,11 +234,23 @@ export default function WishlistScreen() {
         Alert.alert("Success", `Item ${statusText}!`);
 
         // Update local state immediately for better UX
-        setWishlistItems((prevItems) =>
-          prevItems.map((item) =>
+        setWishlistItems((prevItems) => {
+          const updatedItems = prevItems.map((item) =>
             item._id === itemId ? { ...item, isVisited: newStatus } : item
-          )
-        );
+          );
+
+          // Re-sort items: unvisited first, then visited
+          return updatedItems.sort((a, b) => {
+            // First sort by visited status (false first, true last)
+            if (a.isVisited !== b.isVisited) {
+              return a.isVisited ? 1 : -1;
+            }
+            // Then sort by creation date (newest first within each group)
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB - dateA;
+          });
+        });
 
         // Also refresh data from server to ensure sync
         setTimeout(() => {
@@ -277,11 +294,23 @@ export default function WishlistScreen() {
           Alert.alert("Success", `Item ${statusText}!`);
 
           // Update local state
-          setWishlistItems((prevItems) =>
-            prevItems.map((item) =>
+          setWishlistItems((prevItems) => {
+            const updatedItems = prevItems.map((item) =>
               item._id === itemId ? { ...item, isVisited: newStatus } : item
-            )
-          );
+            );
+
+            // Re-sort items: unvisited first, then visited
+            return updatedItems.sort((a, b) => {
+              // First sort by visited status (false first, true last)
+              if (a.isVisited !== b.isVisited) {
+                return a.isVisited ? 1 : -1;
+              }
+              // Then sort by creation date (newest first within each group)
+              const dateA = new Date(a.createdAt || 0);
+              const dateB = new Date(b.createdAt || 0);
+              return dateB - dateA;
+            });
+          });
 
           setTimeout(() => {
             fetchWishlist();
@@ -320,11 +349,23 @@ export default function WishlistScreen() {
             Alert.alert("Success", `Item ${statusText}!`);
 
             // Update local state
-            setWishlistItems((prevItems) =>
-              prevItems.map((item) =>
+            setWishlistItems((prevItems) => {
+              const updatedItems = prevItems.map((item) =>
                 item._id === itemId ? { ...item, isVisited: newStatus } : item
-              )
-            );
+              );
+
+              // Re-sort items: unvisited first, then visited
+              return updatedItems.sort((a, b) => {
+                // First sort by visited status (false first, true last)
+                if (a.isVisited !== b.isVisited) {
+                  return a.isVisited ? 1 : -1;
+                }
+                // Then sort by creation date (newest first within each group)
+                const dateA = new Date(a.createdAt || 0);
+                const dateB = new Date(b.createdAt || 0);
+                return dateB - dateA;
+              });
+            });
 
             setTimeout(() => {
               fetchWishlist();
@@ -405,27 +446,9 @@ export default function WishlistScreen() {
     const isUpdating = updatingItems.has(item._id);
 
     return (
-      <View
-        style={[
-          styles.itemCard,
-          isNewItem && styles.newItemCard,
-          isVisited && styles.visitedItemCard,
-        ]}
-      >
-        {/* New Item Badge */}
-        {isNewItem && (
-          <View style={styles.newBadge}>
-            <Text style={styles.newBadgeText}>NEW</Text>
-          </View>
-        )}
-
-        {/* Visited Status Badge */}
-        {isVisited && (
-          <View style={styles.visitedBadge}>
-            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-            <Text style={styles.visitedBadgeText}>Visited</Text>
-          </View>
-        )}
+      <View style={[styles.itemCard, isVisited && styles.visitedItemCard]}>
+        {/* Visited Status Indicator */}
+        {isVisited && <View style={styles.visitedIndicator} />}
 
         {/* Item Header */}
         <View style={styles.itemHeader}>
@@ -436,36 +459,42 @@ export default function WishlistScreen() {
             >
               {data.name || "Unnamed Place"}
             </Text>
-            <View style={styles.categoryContainer}>
-              <Ionicons
-                name={getCategoryIcon(data.category)}
-                size={16}
-                color={getCategoryColor(data.category)}
-              />
-              <Text
-                style={[
-                  styles.categoryText,
-                  { color: getCategoryColor(data.category) },
-                ]}
-              >
-                {formatCategoryName(data.category)}
+
+            {data.location && (
+              <Text style={styles.locationText} numberOfLines={1}>
+                {data.location}
               </Text>
-            </View>
+            )}
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actionButtonsContainer}>
-            {/* Remove Button */}
             <TouchableOpacity
-              style={[
-                styles.removeButton,
-                isRemoving && styles.removeButtonLoading,
-              ]}
+              style={styles.actionButton}
               onPress={() => {
-                if (isRemoving) return; // Prevent multiple clicks
+                if (isUpdating) return;
+                updateVisitStatus(item._id, isVisited);
+              }}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <ActivityIndicator size="small" color="#F4D03F" />
+              ) : (
+                <Ionicons
+                  name={isVisited ? "checkmark-circle" : "radio-button-off"}
+                  size={24}
+                  color={isVisited ? "#F4D03F" : "#999999"}
+                />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => {
+                if (isRemoving) return;
                 Alert.alert(
                   "Remove from Wishlist",
-                  `Are you sure you want to remove "${data.name}" from your wishlist?`,
+                  `Remove "${data.name}" from your wishlist?`,
                   [
                     { text: "Cancel", style: "cancel" },
                     {
@@ -479,114 +508,38 @@ export default function WishlistScreen() {
               disabled={isRemoving}
             >
               {isRemoving ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color="#999999" />
               ) : (
-                <Ionicons name="heart" size={20} color="#ff4444" />
+                <Ionicons name="trash-outline" size={20} color="#999999" />
               )}
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Rating and Cost */}
-        {(data.rating || data.estimatedCost) && (
-          <View style={styles.ratingCostContainer}>
-            {data.rating && (
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>{data.rating}</Text>
-              </View>
-            )}
-            {data.estimatedCost && (
-              <Text style={styles.costText}>{data.estimatedCost}</Text>
-            )}
-          </View>
-        )}
-
         {/* Description */}
         {data.description && (
-          <Text style={styles.description} numberOfLines={3}>
+          <Text style={styles.description} numberOfLines={2}>
             {data.description}
           </Text>
         )}
 
-        {/* Location */}
-        {data.location && (
-          <View style={styles.locationContainer}>
-            <Ionicons name="location-outline" size={16} color="#888" />
-            <Text style={styles.locationText} numberOfLines={2}>
-              {data.location}
-            </Text>
-          </View>
-        )}
-
-        {/* Highlights */}
-        {data.highlights && data.highlights.length > 0 && (
-          <View style={styles.highlightsContainer}>
-            <Text style={styles.highlightsTitle}>Highlights:</Text>
-            {data.highlights.slice(0, 3).map((highlight, idx) => (
-              <Text key={idx} style={styles.highlightText}>
-                • {highlight}
+        {/* Bottom Info */}
+        <View style={styles.bottomInfo}>
+          {data.category && (
+            <View style={styles.categoryContainer}>
+              <Text style={styles.categoryText}>
+                {formatCategoryName(data.category)}
               </Text>
-            ))}
-            {data.highlights.length > 3 && (
-              <Text style={styles.highlightText}>
-                • +{data.highlights.length - 3} more...
-              </Text>
-            )}
-          </View>
-        )}
+            </View>
+          )}
 
-        {/* Actions Section */}
-        <View style={styles.actionsSection}>
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                isVisited
-                  ? styles.markUnvisitedButton
-                  : styles.markVisitedButton,
-                isUpdating && styles.actionButtonLoading,
-              ]}
-              onPress={() => {
-                if (isUpdating) return;
-                updateVisitStatus(item._id, isVisited);
-              }}
-              disabled={isUpdating}
-            >
-              {isUpdating ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons
-                    name={
-                      isVisited
-                        ? "close-circle-outline"
-                        : "checkmark-circle-outline"
-                    }
-                    size={16}
-                    color={isVisited ? "#ff9800" : "#4CAF50"}
-                  />
-                  <Text
-                    style={[
-                      styles.actionButtonText,
-                      { color: isVisited ? "#ff9800" : "#4CAF50" },
-                    ]}
-                  >
-                    {isVisited ? "Mark Unvisited" : "Mark Visited"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+          {data.rating && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color="#F4D03F" />
+              <Text style={styles.ratingText}>{data.rating}</Text>
+            </View>
+          )}
         </View>
-
-        {/* Added Date */}
-        {item.createdAt && (
-          <Text style={styles.dateText}>
-            Added: {new Date(item.createdAt).toLocaleDateString()}
-            {isNewItem && " ✨"}
-          </Text>
-        )}
       </View>
     );
   };
@@ -594,11 +547,8 @@ export default function WishlistScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Wishlist</Text>
-        </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color="#F4D03F" />
         </View>
       </SafeAreaView>
     );
@@ -610,37 +560,18 @@ export default function WishlistScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Wishlist</Text>
+        <Text style={styles.headerTitle}>Wishlist</Text>
         {wishlistItems.length > 0 && (
-          <View style={styles.headerStats}>
-            <Text style={styles.headerSubtitle}>
-              {wishlistItems.length} place
-              {wishlistItems.length !== 1 ? "s" : ""} saved
-            </Text>
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-                <Text style={styles.statText}>
-                  {wishlistItems.filter((item) => item.isVisited).length}{" "}
-                  visited
-                </Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="bookmark-outline" size={14} color="#888" />
-                <Text style={styles.statText}>
-                  {wishlistItems.filter((item) => !item.isVisited).length} to
-                  visit
-                </Text>
-              </View>
-            </View>
-          </View>
+          <Text style={styles.headerSubtitle}>
+            {wishlistItems.length} place{wishlistItems.length !== 1 ? "s" : ""}
+          </Text>
         )}
       </View>
 
       {/* Wishlist Content */}
       {wishlistItems.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="heart-outline" size={64} color="#555" />
+          <Ionicons name="heart-outline" size={64} color="#999999" />
           <Text style={styles.emptyTitle}>Your Wishlist is Empty</Text>
           <Text style={styles.emptyText}>
             Start exploring and add places you'd love to visit to your wishlist!
@@ -662,9 +593,9 @@ export default function WishlistScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#fff"
+              tintColor="#F4D03F"
               title="Pull to refresh"
-              titleColor="#fff"
+              titleColor="#F4D03F"
             />
           }
         />
@@ -676,198 +607,113 @@ export default function WishlistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1a1a1a",
   },
   header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: 4,
-  },
-  headerStats: {
-    alignItems: "center",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#888",
-    marginBottom: 8,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  statText: {
-    fontSize: 12,
-    color: "#888",
+    color: "#999999",
+    fontWeight: "400",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  loadingText: {
-    color: "#fff",
-    fontSize: 16,
-    marginTop: 12,
-  },
   listContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 120,
   },
   itemCard: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#222",
     position: "relative",
   },
-  newItemCard: {
-    borderColor: "#4CAF50",
-    borderWidth: 2,
-    backgroundColor: "#0a1f0a",
-  },
   visitedItemCard: {
-    backgroundColor: "#1a1a1a",
-    borderColor: "#444",
-    opacity: 0.8,
+    opacity: 0.6,
   },
-  newBadge: {
+  visitedIndicator: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    zIndex: 1,
-  },
-  newBadgeText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  visitedBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1a3a1a",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    zIndex: 1,
-    gap: 4,
-  },
-  visitedBadgeText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "#4CAF50",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: "#F4D03F",
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   itemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 12,
-    paddingTop: 4, // Prevent visited badge overlap
   },
   itemInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 16,
   },
   itemName: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "600",
+    color: "#FFFFFF",
+    lineHeight: 24,
     marginBottom: 4,
   },
   visitedItemName: {
-    color: "#aaa",
     textDecorationLine: "line-through",
-    marginTop: 20, // Prevent overlap with visited badge
+    color: "#999999",
   },
-  categoryContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  removeButton: {
-    backgroundColor: "#222",
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ff4444",
-  },
-  removeButtonLoading: {
-    backgroundColor: "#333",
-    opacity: 0.7,
+  locationText: {
+    fontSize: 14,
+    color: "#999999",
+    lineHeight: 18,
   },
   actionButtonsContainer: {
     flexDirection: "row",
-    gap: 8,
+    gap: 16,
     alignItems: "center",
-  },
-  actionsSection: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  actionsSectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-    marginBottom: 8,
-  },
-  actionsRow: {
-    flexDirection: "row",
-    gap: 8,
   },
   actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    backgroundColor: "#222",
-    gap: 6,
+    padding: 4,
   },
-  markVisitedButton: {
-    borderColor: "#4CAF50",
-    backgroundColor: "#0a1f0a",
+  removeButton: {
+    padding: 4,
   },
-  markUnvisitedButton: {
-    borderColor: "#ff9800",
-    backgroundColor: "#1f1f0a",
+  description: {
+    fontSize: 14,
+    color: "#CCCCCC",
+    lineHeight: 20,
+    marginBottom: 16,
   },
-  actionButtonLoading: {
-    backgroundColor: "#333",
-    opacity: 0.7,
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  ratingCostContainer: {
+  bottomInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+  },
+  categoryContainer: {
+    backgroundColor: "#3a3a3a",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: "#CCCCCC",
+    textTransform: "uppercase",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -875,52 +721,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  costText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4CAF50",
-  },
-  description: {
-    fontSize: 14,
-    color: "#ccc",
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 4,
-    marginBottom: 12,
-  },
-  locationText: {
     fontSize: 12,
-    color: "#888",
-    flex: 1,
-    lineHeight: 16,
-  },
-  highlightsContainer: {
-    marginBottom: 12,
-  },
-  highlightsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  highlightText: {
-    fontSize: 12,
-    color: "#ccc",
-    marginBottom: 2,
-  },
-  dateText: {
-    fontSize: 11,
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "right",
+    fontWeight: "500",
+    color: "#FFFFFF",
   },
   emptyContainer: {
     flex: 1,
@@ -930,23 +733,22 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "600",
+    color: "#FFFFFF",
     marginTop: 20,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     textAlign: "center",
     lineHeight: 24,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#666",
+    color: "#999999",
     textAlign: "center",
     lineHeight: 20,
-    fontStyle: "italic",
   },
 });

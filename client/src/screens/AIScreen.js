@@ -239,7 +239,7 @@ export default function AIScreen() {
       if (response.ok && data.success) {
         // Navigate to wishlist screen immediately after successful addition
         Alert.alert(
-          "✅ Added to Wishlist!",
+          "Added to Wishlist",
           `${place.name} has been saved to your wishlist.`,
           [
             {
@@ -479,7 +479,7 @@ export default function AIScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI Travel Recommendations</Text>
+        <Text style={styles.headerTitle}>Recommendations</Text>
       </View>
 
       {/* Search Section */}
@@ -489,7 +489,7 @@ export default function AIScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Enter location (e.g., Bogor, Jakarta)"
-            placeholderTextColor="#888"
+            placeholderTextColor="#999999"
             value={location}
             onChangeText={setLocation}
           />
@@ -499,9 +499,9 @@ export default function AIScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#000" size="small" />
+              <ActivityIndicator color="#1a1a1a" size="small" />
             ) : (
-              <Ionicons name="search" size={20} color="#000" />
+              <Ionicons name="search" size={20} color="#1a1a1a" />
             )}
           </TouchableOpacity>
         </View>
@@ -515,7 +515,7 @@ export default function AIScreen() {
         {/* Loading State */}
         {loading && (
           <View style={styles.loadingState}>
-            <ActivityIndicator size="large" color="#fff" />
+            <ActivityIndicator size="large" color="#F4D03F" />
             <Text style={styles.loadingText}>Getting recommendations...</Text>
           </View>
         )}
@@ -525,7 +525,7 @@ export default function AIScreen() {
             {/* Summary */}
             {summary && (
               <View style={styles.summaryContainer}>
-                <Text style={styles.summaryTitle}>📍 Summary</Text>
+                <Text style={styles.summaryTitle}>Summary</Text>
                 <Text style={styles.summaryText}>{summary}</Text>
               </View>
             )}
@@ -533,7 +533,7 @@ export default function AIScreen() {
             {/* Tips */}
             {tips.length > 0 && (
               <View style={styles.tipsContainer}>
-                <Text style={styles.tipsTitle}>💡 Tips</Text>
+                <Text style={styles.tipsTitle}>Tips</Text>
                 {tips.map((tip, index) => (
                   <Text key={index} style={styles.tipText}>
                     • {tip}
@@ -582,12 +582,12 @@ export default function AIScreen() {
                         disabled={addingToWishlist === place.name}
                       >
                         {addingToWishlist === place.name ? (
-                          <ActivityIndicator size="small" color="#fff" />
+                          <ActivityIndicator size="small" color="#1a1a1a" />
                         ) : (
                           <Ionicons
                             name="heart-outline"
                             size={20}
-                            color="#fff"
+                            color="#1a1a1a"
                           />
                         )}
                       </TouchableOpacity>
@@ -596,7 +596,7 @@ export default function AIScreen() {
                     {/* Rating and Cost */}
                     <View style={styles.ratingCostContainer}>
                       <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={16} color="#FFD700" />
+                        <Ionicons name="star" size={16} color="#F4D03F" />
                         <Text style={styles.ratingText}>{place.rating}</Text>
                       </View>
                       <Text style={styles.costText}>{place.estimatedCost}</Text>
@@ -610,7 +610,7 @@ export default function AIScreen() {
                       <Ionicons
                         name="location-outline"
                         size={16}
-                        color="#888"
+                        color="#999999"
                       />
                       <Text style={styles.locationText}>{place.location}</Text>
                     </View>
@@ -634,7 +634,7 @@ export default function AIScreen() {
             {/* Empty State */}
             {recommendations.length === 0 && (
               <View style={styles.emptyState}>
-                <Ionicons name="search-outline" size={64} color="#555" />
+                <Ionicons name="search-outline" size={64} color="#999999" />
                 <Text style={styles.emptyTitle}>Discover Amazing Places</Text>
                 <Text style={styles.emptyText}>
                   Enter a location to get AI-powered travel recommendations
@@ -655,58 +655,76 @@ export default function AIScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1a1a1a",
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    borderBottomColor: "#2a2a2a",
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     textAlign: "center",
   },
   searchSection: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    borderBottomColor: "#2a2a2a",
   },
   searchLabel: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#fff",
-    marginBottom: 12,
+    color: "#FFFFFF",
+    marginBottom: 16,
   },
   searchContainer: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "#111",
-    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
-    color: "#fff",
+    color: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   searchButton: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: "#F4D03F",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    minWidth: 50,
+    minWidth: 56,
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   resultsContainer: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 120, // Extra padding for TabNavigator
   },
   loadingState: {
     alignItems: "center",
@@ -714,146 +732,204 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   loadingText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    marginTop: 12,
+    fontWeight: "500",
+    marginTop: 16,
   },
   summaryContainer: {
-    backgroundColor: "#111",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    padding: 20,
+    borderRadius: 16,
     marginVertical: 16,
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 8,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 12,
   },
   summaryText: {
-    fontSize: 14,
-    color: "#ccc",
-    lineHeight: 20,
+    fontSize: 15,
+    color: "#FFFFFF",
+    lineHeight: 22,
   },
   tipsContainer: {
-    backgroundColor: "#111",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    padding: 20,
+    borderRadius: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   tipsTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 8,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 12,
   },
   tipText: {
     fontSize: 14,
-    color: "#ccc",
-    marginBottom: 4,
-    lineHeight: 18,
+    color: "#FFFFFF",
+    marginBottom: 6,
+    lineHeight: 20,
   },
   recommendationsContainer: {
     marginBottom: 20,
   },
   recommendationsTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: 16,
   },
   placeCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#222",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   placeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   placeInfo: {
     flex: 1,
+    marginRight: 12,
   },
   placeName: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 4,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+    lineHeight: 24,
   },
   categoryContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    backgroundColor: "#3a3a3a",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
   },
   categoryText: {
     fontSize: 12,
     fontWeight: "600",
   },
   wishlistButton: {
-    backgroundColor: "#ff4444",
-    padding: 8,
-    borderRadius: 8,
+    backgroundColor: "#F4D03F",
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   wishlistButtonLoading: {
-    backgroundColor: "#ff6666",
+    backgroundColor: "#F4D03F",
     opacity: 0.7,
   },
   ratingCostContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    backgroundColor: "#3a3a3a",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   ratingText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#fff",
+    color: "#FFFFFF",
   },
   costText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#4CAF50",
+    color: "#F4D03F",
+    backgroundColor: "#3a3a3a",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   description: {
-    fontSize: 14,
-    color: "#ccc",
-    lineHeight: 20,
-    marginBottom: 12,
+    fontSize: 15,
+    color: "#FFFFFF",
+    lineHeight: 22,
+    marginBottom: 16,
   },
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 16,
+    backgroundColor: "#3a3a3a",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   locationText: {
-    fontSize: 12,
-    color: "#888",
+    fontSize: 13,
+    color: "#999999",
     flex: 1,
+    lineHeight: 18,
   },
   highlightsContainer: {
-    marginTop: 8,
+    marginTop: 4,
   },
   highlightsTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#fff",
-    marginBottom: 4,
+    color: "#FFFFFF",
+    marginBottom: 8,
   },
   highlightText: {
-    fontSize: 12,
-    color: "#ccc",
-    marginBottom: 2,
+    fontSize: 13,
+    color: "#999999",
+    marginBottom: 4,
+    lineHeight: 18,
   },
   emptyState: {
     alignItems: "center",
@@ -863,22 +939,23 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 14,
-    color: "#888",
+    fontSize: 16,
+    color: "#999999",
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 8,
+    lineHeight: 24,
+    marginBottom: 12,
   },
   emptySubtext: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 14,
+    color: "#999999",
     textAlign: "center",
     fontStyle: "italic",
+    lineHeight: 20,
   },
 });

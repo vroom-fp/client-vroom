@@ -404,7 +404,7 @@ function PostDetailScreen() {
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#F4D03F" />
           <Text style={styles.loadingText}>Loading post details...</Text>
         </View>
       </SafeAreaView>
@@ -431,7 +431,7 @@ function PostDetailScreen() {
             onPress={fetchPostDetail}
             style={styles.retryButton}
           >
-            <Ionicons name="refresh" size={20} color="#fff" />
+            <Ionicons name="refresh" size={20} color="#F4D03F" />
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -497,7 +497,7 @@ function PostDetailScreen() {
       <View style={styles.mapContainer}>
         <View style={styles.mapHeader}>
           <View style={styles.mapTitleSection}>
-            <Ionicons name="map" size={20} color="#007AFF" />
+            <Ionicons name="map" size={20} color="#F4D03F" />
             <Text style={styles.mapTitle}>Trip Route</Text>
           </View>
           <TouchableOpacity
@@ -507,7 +507,7 @@ function PostDetailScreen() {
             <Ionicons
               name={isMapExpanded ? "contract" : "expand"}
               size={18}
-              color="#007AFF"
+              color="#F4D03F"
             />
           </TouchableOpacity>
         </View>
@@ -617,7 +617,7 @@ function PostDetailScreen() {
               console.log("Map render error:", error);
               return (
                 <View style={styles.mapFallback}>
-                  <Ionicons name="map-outline" size={60} color="#666" />
+                  <Ionicons name="map-outline" size={60} color="#999999" />
                   <Text style={styles.mapFallbackText}>Map not available</Text>
                   <Text style={styles.mapFallbackSubtext}>
                     {trip.path.length} points • {distanceKm} km
@@ -641,7 +641,7 @@ function PostDetailScreen() {
                 </View>
               )}
               <View style={styles.routePoint}>
-                <Ionicons name="location" size={12} color="#007AFF" />
+                <Ionicons name="location" size={12} color="#F4D03F" />
                 <Text style={styles.pointLabel}>{trip.path.length} points</Text>
               </View>
             </View>
@@ -659,7 +659,7 @@ function PostDetailScreen() {
       <View style={styles.commentsSection}>
         <View style={styles.commentsSectionHeader}>
           <View style={styles.commentsHeaderLeft}>
-            <Ionicons name="chatbubbles" size={20} color="#007AFF" />
+            <Ionicons name="chatbubbles" size={20} color="#F4D03F" />
             <Text style={styles.commentsTitle}>
               Comments ({comments.length})
             </Text>
@@ -668,7 +668,7 @@ function PostDetailScreen() {
             style={styles.commentsToggle}
             onPress={() => setShowComments(false)}
           >
-            <Ionicons name="chevron-up" size={20} color="#007AFF" />
+            <Ionicons name="chevron-up" size={20} color="#F4D03F" />
           </TouchableOpacity>
         </View>
 
@@ -696,9 +696,9 @@ function PostDetailScreen() {
               disabled={!newComment.trim() || addingComment}
             >
               {addingComment ? (
-                <ActivityIndicator size="small" color="#007AFF" />
+                <ActivityIndicator size="small" color="#F4D03F" />
               ) : (
-                <Ionicons name="send" size={18} color="#007AFF" />
+                <Ionicons name="send" size={18} color="#1a1a1a" />
               )}
             </TouchableOpacity>
           </View>
@@ -709,14 +709,14 @@ function PostDetailScreen() {
         <View style={styles.commentsList}>
           {commentsLoading ? (
             <View style={styles.commentsLoading}>
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color="#F4D03F" />
               <Text style={styles.commentsLoadingText}>
                 Loading comments...
               </Text>
             </View>
           ) : comments.length === 0 ? (
             <View style={styles.noComments}>
-              <Ionicons name="chatbubble-outline" size={40} color="#666" />
+              <Ionicons name="chatbubble-outline" size={40} color="#999999" />
               <Text style={styles.noCommentsText}>No comments yet</Text>
               <Text style={styles.noCommentsSubtext}>
                 Be the first to comment!
@@ -726,7 +726,7 @@ function PostDetailScreen() {
             comments.map((comment, index) => (
               <View key={comment._id || index} style={styles.commentItem}>
                 <View style={styles.commentAvatar}>
-                  <Ionicons name="person" size={16} color="#007AFF" />
+                  <Ionicons name="person" size={16} color="#F4D03F" />
                 </View>
                 <View style={styles.commentContent}>
                   <View style={styles.commentHeader}>
@@ -773,6 +773,7 @@ function PostDetailScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" />
@@ -783,24 +784,27 @@ function PostDetailScreen() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color="#F4D03F" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Post Details</Text>
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={24} color="#fff" />
+            <Ionicons name="share-outline" size={24} color="#F4D03F" />
           </TouchableOpacity>
         </View>
 
         <ScrollView
           style={styles.content}
+          contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#007AFF"
+              tintColor="#F4D03F"
               title="Pull to refresh"
-              titleColor="#888"
+              titleColor="#999999"
             />
           }
         >
@@ -808,7 +812,7 @@ function PostDetailScreen() {
           <View style={styles.userCard}>
             <View style={styles.userInfo}>
               <View style={styles.avatar}>
-                <Ionicons name="person" size={24} color="#007AFF" />
+                <Ionicons name="person" size={24} color="#F4D03F" />
               </View>
               <View style={styles.userDetails}>
                 <Text style={styles.username}>
@@ -829,17 +833,17 @@ function PostDetailScreen() {
           {/* Trip Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <Ionicons name="map" size={20} color="#007AFF" />
+              <Ionicons name="map" size={20} color="#F4D03F" />
               <Text style={styles.statValue}>{distanceKm}</Text>
               <Text style={styles.statLabel}>km</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="timer" size={20} color="#007AFF" />
+              <Ionicons name="timer" size={20} color="#F4D03F" />
               <Text style={styles.statValue}>{durationStr}</Text>
               <Text style={styles.statLabel}>duration</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="speedometer" size={20} color="#007AFF" />
+              <Ionicons name="speedometer" size={20} color="#F4D03F" />
               <Text style={styles.statValue}>{avgSpeed}</Text>
               <Text style={styles.statLabel}>km/h</Text>
             </View>
@@ -889,7 +893,7 @@ function PostDetailScreen() {
           {/* Trip Details */}
           <View style={styles.tripDetails}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Ionicons name="information-circle" size={20} color="#F4D03F" />
               <Text style={styles.sectionTitle}>Trip Details</Text>
             </View>
 
@@ -918,7 +922,7 @@ function PostDetailScreen() {
 
               <View style={styles.detailRow}>
                 <View style={styles.detailIcon}>
-                  <Ionicons name="location" size={16} color="#007AFF" />
+                  <Ionicons name="location" size={16} color="#F4D03F" />
                 </View>
                 <Text style={styles.detailLabel}>Waypoints</Text>
                 <Text style={styles.detailValue}>
@@ -928,7 +932,7 @@ function PostDetailScreen() {
 
               <View style={styles.detailRow}>
                 <View style={styles.detailIcon}>
-                  <Ionicons name="time" size={16} color="#007AFF" />
+                  <Ionicons name="time" size={16} color="#F4D03F" />
                 </View>
                 <Text style={styles.detailLabel}>Start Time</Text>
                 <Text style={styles.detailValue}>
@@ -938,7 +942,7 @@ function PostDetailScreen() {
 
               <View style={styles.detailRow}>
                 <View style={styles.detailIcon}>
-                  <Ionicons name="checkmark-circle" size={16} color="#007AFF" />
+                  <Ionicons name="checkmark-circle" size={16} color="#F4D03F" />
                 </View>
                 <Text style={styles.detailLabel}>End Time</Text>
                 <Text style={styles.detailValue}>
@@ -958,7 +962,7 @@ function PostDetailScreen() {
               <Ionicons
                 name={liked ? "heart" : "heart-outline"}
                 size={20}
-                color={liked ? "#ff3b30" : "#007AFF"}
+                color={liked ? "#ff3b30" : "#F4D03F"}
               />
               <Text
                 style={[styles.actionText, liked && styles.actionTextActive]}
@@ -976,7 +980,7 @@ function PostDetailScreen() {
               <Ionicons
                 name={showComments ? "chatbubbles" : "chatbubbles-outline"}
                 size={20}
-                color="#007AFF"
+                color="#F4D03F"
               />
               <Text style={styles.actionText}>
                 {comments.length}{" "}
@@ -996,33 +1000,44 @@ function PostDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1a1a1a",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#2a2a2a",
   },
   backButton: {
-    padding: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   headerSpacer: {
-    width: 40,
+    width: 48,
   },
   shareButton: {
-    padding: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
   },
   content: {
     flex: 1,
+  },
+  scrollContainer: {
+    paddingBottom: 120, // Extra padding to avoid TabNavigator overlap
   },
 
   // Loading & Error States
@@ -1032,7 +1047,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 16,
     marginTop: 16,
   },
@@ -1043,7 +1058,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 16,
     textAlign: "center",
     marginTop: 16,
@@ -1052,26 +1067,42 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#007AFF",
+    backgroundColor: "#F4D03F",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 8,
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   retryText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
   },
 
   // User Card
   userCard: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
     marginTop: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   userInfo: {
     flexDirection: "row",
@@ -1082,41 +1113,49 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#333",
+    backgroundColor: "#3a3a3a",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
-    borderWidth: 1,
-    borderColor: "#555",
+    borderWidth: 2,
+    borderColor: "#F4D03F",
   },
   userDetails: {
     flex: 1,
   },
   username: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   postDate: {
     fontSize: 14,
-    color: "#888",
+    color: "#999999",
   },
 
   // Caption Card
   captionCard: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
     padding: 16,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   caption: {
     fontSize: 16,
     lineHeight: 24,
-    color: "#fff",
+    color: "#FFFFFF",
   },
 
   // Stats Container
@@ -1129,30 +1168,50 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     alignItems: "center",
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
     gap: 8,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#F4D03F",
   },
   statLabel: {
     fontSize: 12,
-    color: "#888",
+    color: "#999999",
+    fontWeight: "500",
   },
 
   // Image Section
   imageSection: {
     marginTop: 12,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginHorizontal: 20,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   postImage: {
-    width: screenWidth,
+    width: screenWidth - 40,
     height: 300,
     resizeMode: "cover",
   },
@@ -1160,28 +1219,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     paddingVertical: 16,
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#333",
+    backgroundColor: "#666666",
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#F4D03F",
   },
 
   // Map Container
   mapContainer: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
     overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   mapHeader: {
     flexDirection: "row",
@@ -1189,7 +1256,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#3a3a3a",
   },
   mapTitleSection: {
     flexDirection: "row",
@@ -1198,15 +1265,15 @@ const styles = StyleSheet.create({
   },
   mapTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   expandButton: {
-    backgroundColor: "#333",
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: "#3a3a3a",
+    borderRadius: 12,
+    padding: 10,
     borderWidth: 1,
-    borderColor: "#555",
+    borderColor: "#4a4a4a",
   },
   mapWrapper: {
     height: 300,
@@ -1224,16 +1291,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#222",
+    backgroundColor: "#333333",
   },
   mapFallbackText: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     marginTop: 8,
   },
   mapFallbackSubtext: {
     fontSize: 12,
-    color: "#666",
+    color: "#666666",
     marginTop: 4,
   },
   mapOverlay: {
@@ -1242,7 +1309,7 @@ const styles = StyleSheet.create({
     left: 8,
     right: 8,
     backgroundColor: "rgba(0,0,0,0.8)",
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
   },
   mapInfo: {
@@ -1256,7 +1323,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   pointLabel: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "500",
   },
@@ -1292,7 +1359,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#F4D03F",
     borderWidth: 2,
     borderColor: "#fff",
     shadowColor: "#000",
@@ -1304,25 +1371,33 @@ const styles = StyleSheet.create({
 
   // Trip Details
   tripDetails: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#3a3a3a",
     gap: 8,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   detailsList: {
     padding: 16,
@@ -1338,14 +1413,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   detailLabel: {
-    color: "#888",
+    color: "#999999",
     fontSize: 14,
     flex: 1,
+    fontWeight: "500",
   },
   detailValue: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     flex: 1.5,
     textAlign: "right",
   },
@@ -1355,42 +1431,59 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 20,
-    paddingBottom: 20,
+    paddingVertical: 24,
+    paddingBottom: 32,
+    marginBottom: 16,
   },
   actionButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
     gap: 8,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   actionButtonActive: {
-    backgroundColor: "#222",
-    borderColor: "#007AFF",
+    backgroundColor: "#3a3a3a",
+    borderColor: "#F4D03F",
   },
   actionText: {
-    color: "#007AFF",
+    color: "#F4D03F",
     fontSize: 16,
     fontWeight: "600",
   },
   actionTextActive: {
-    color: "#007AFF",
+    color: "#F4D03F",
   },
 
   // Comments Section
   commentsSection: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 12,
+    marginBottom: 32,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   commentsSectionHeader: {
     flexDirection: "row",
@@ -1398,7 +1491,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#3a3a3a",
   },
   commentsHeaderLeft: {
     flexDirection: "row",
@@ -1407,63 +1500,64 @@ const styles = StyleSheet.create({
   },
   commentsTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   commentsToggle: {
-    backgroundColor: "#333",
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: "#3a3a3a",
+    borderRadius: 12,
+    padding: 10,
     borderWidth: 1,
-    borderColor: "#555",
+    borderColor: "#4a4a4a",
   },
 
   // Add Comment
   addCommentContainer: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#3a3a3a",
   },
   addCommentInputWrapper: {
     flexDirection: "row",
     alignItems: "flex-end",
-    backgroundColor: "#222",
+    backgroundColor: "#1a1a1a",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#3a3a3a",
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 8,
   },
   addCommentInput: {
     flex: 1,
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
     maxHeight: 100,
     minHeight: 40,
     textAlignVertical: "top",
   },
   addCommentButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: "#F4D03F",
+    borderRadius: 12,
+    padding: 10,
     alignItems: "center",
     justifyContent: "center",
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
   },
   addCommentButtonDisabled: {
-    backgroundColor: "#333",
+    backgroundColor: "#666666",
   },
   commentCharCount: {
     fontSize: 12,
-    color: "#888",
+    color: "#999999",
     textAlign: "right",
     marginTop: 4,
   },
 
   // Comments List
   commentsList: {
+    paddingTop: 30,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
@@ -1475,7 +1569,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   commentsLoadingText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 14,
   },
   noComments: {
@@ -1484,12 +1578,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   noCommentsText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 16,
     fontWeight: "500",
   },
   noCommentsSubtext: {
-    color: "#666",
+    color: "#666666",
     fontSize: 14,
   },
 
@@ -1503,11 +1597,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#333",
+    backgroundColor: "#3a3a3a",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#555",
+    borderColor: "#F4D03F",
   },
   commentContent: {
     flex: 1,
@@ -1519,12 +1613,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   commentAuthor: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
   },
   commentDate: {
-    color: "#888",
+    color: "#999999",
     fontSize: 12,
   },
   commentDeleteButton: {
@@ -1532,7 +1626,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   commentText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
     lineHeight: 20,
   },

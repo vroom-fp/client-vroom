@@ -360,7 +360,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.postHeader}>
           <Text style={styles.postDate}>{createdAt}</Text>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
+          <Ionicons name="chevron-forward" size={20} color="#F4D03F" />
         </View>
 
         <Text style={styles.postCaption}>{item.caption}</Text>
@@ -404,7 +404,7 @@ export default function ProfileScreen() {
                             latitude: point.lat,
                             longitude: point.lng,
                           }))}
-                          strokeColor="#fff"
+                          strokeColor="#F4D03F"
                           strokeWidth={3}
                           lineCap="round"
                           lineJoin="round"
@@ -449,7 +449,7 @@ export default function ProfileScreen() {
                 } catch (error) {
                   return (
                     <View style={styles.mapFallback}>
-                      <Ionicons name="map-outline" size={30} color="#666" />
+                      <Ionicons name="map-outline" size={30} color="#999999" />
                       <Text style={styles.mapFallbackText}>
                         Peta tidak tersedia
                       </Text>
@@ -490,11 +490,11 @@ export default function ProfileScreen() {
 
         <View style={styles.postStats}>
           <View style={styles.postStatItem}>
-            <Ionicons name="map" size={16} color="#fff" />
+            <Ionicons name="map" size={16} color="#F4D03F" />
             <Text style={styles.postStatText}>{distanceKm} km</Text>
           </View>
           <View style={styles.postStatItem}>
-            <Ionicons name="timer" size={16} color="#fff" />
+            <Ionicons name="timer" size={16} color="#F4D03F" />
             <Text style={styles.postStatText}>{durationStr}</Text>
           </View>
         </View>
@@ -509,7 +509,7 @@ export default function ProfileScreen() {
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color="#F4D03F" />
         </View>
       </SafeAreaView>
     );
@@ -518,14 +518,17 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
+        bounces={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#fff"
+            tintColor="#F4D03F"
             title="Pull to refresh profile"
-            titleColor="#fff"
+            titleColor="#999999"
           />
         }
         nestedScrollEnabled={true}
@@ -538,7 +541,7 @@ export default function ProfileScreen() {
             style={styles.logoutIconButton}
             onPress={handleLogout}
           >
-            <Ionicons name="log-out-outline" size={24} color="#fff" />
+            <Ionicons name="log-out-outline" size={24} color="#F4D03F" />
           </TouchableOpacity>
         </View>
 
@@ -592,7 +595,7 @@ export default function ProfileScreen() {
             <Ionicons
               name="grid-outline"
               size={20}
-              color={activeTab === "posts" ? "#fff" : "#888"}
+              color={activeTab === "posts" ? "#1a1a1a" : "#999999"}
             />
             <Text
               style={[
@@ -610,7 +613,7 @@ export default function ProfileScreen() {
           <View style={styles.postsContainer}>
             {loading ? (
               <View style={styles.postsLoadingContainer}>
-                <ActivityIndicator size="large" color="#fff" />
+                <ActivityIndicator size="large" color="#F4D03F" />
                 <Text style={styles.loadingText}>Loading posts...</Text>
               </View>
             ) : userPosts.length > 0 ? (
@@ -628,7 +631,7 @@ export default function ProfileScreen() {
               />
             ) : (
               <View style={styles.emptyContainer}>
-                <Ionicons name="camera-outline" size={64} color="#666" />
+                <Ionicons name="camera-outline" size={64} color="#999999" />
                 <Text style={styles.emptyTitle}>No posts yet</Text>
                 <Text style={styles.emptyText}>
                   Start recording your trips to share your adventures
@@ -637,7 +640,7 @@ export default function ProfileScreen() {
                   style={styles.createPostButton}
                   onPress={() => navigation.navigate("RecordScreen")}
                 >
-                  <Ionicons name="add" size={20} color="#000" />
+                  <Ionicons name="add" size={20} color="#1a1a1a" />
                   <Text style={styles.createPostButtonText}>
                     Create First Post
                   </Text>
@@ -650,7 +653,7 @@ export default function ProfileScreen() {
         {/* Liked Posts Content */}
         {activeTab === "liked" && (
           <View style={styles.comingSoonContainer}>
-            <Ionicons name="heart-outline" size={64} color="#666" />
+            <Ionicons name="heart-outline" size={64} color="#999999" />
             <Text style={styles.comingSoonTitle}>Liked Posts</Text>
             <Text style={styles.comingSoonText}>
               This feature is coming soon!
@@ -661,7 +664,7 @@ export default function ProfileScreen() {
         {/* Saved Posts Content */}
         {activeTab === "saved" && (
           <View style={styles.comingSoonContainer}>
-            <Ionicons name="bookmark-outline" size={64} color="#666" />
+            <Ionicons name="bookmark-outline" size={64} color="#999999" />
             <Text style={styles.comingSoonTitle}>Saved Posts</Text>
             <Text style={styles.comingSoonText}>
               This feature is coming soon!
@@ -681,7 +684,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1a1a1a",
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContainer: {
+    paddingBottom: 120, // Extra padding for TabNavigator
   },
   loadingContainer: {
     flex: 1,
@@ -689,7 +698,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#fff",
+    color: "#999999",
     fontSize: 16,
     marginTop: 10,
   },
@@ -697,18 +706,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    borderBottomColor: "#2a2a2a",
   },
   headerLeft: {
     width: 40, // Same width as logout button for balance
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     flex: 1,
     textAlign: "center",
   },
@@ -726,40 +735,48 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: "#333",
+    borderColor: "#F4D03F",
   },
   avatarEditButton: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#fff",
+    backgroundColor: "#F4D03F",
     width: 32,
     height: 32,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: "#1a1a1a",
   },
   name: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   email: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     marginBottom: 20,
   },
   editButton: {
-    backgroundColor: "#fff",
+    backgroundColor: "#F4D03F",
     paddingHorizontal: 32,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   editButtonText: {
-    color: "#000",
+    color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -767,10 +784,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingVertical: 20,
     paddingHorizontal: 20,
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   statItem: {
     flex: 1,
@@ -778,27 +805,38 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#F4D03F",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 14,
-    color: "#888",
+    color: "#999999",
+    fontWeight: "500",
   },
   statDivider: {
     width: 1,
-    backgroundColor: "#333",
+    backgroundColor: "#3a3a3a",
     marginHorizontal: 16,
   },
   // Tab Navigation Styles
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 4,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tab: {
     flex: 1,
@@ -807,19 +845,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 6,
   },
   activeTab: {
-    backgroundColor: "#333",
+    backgroundColor: "#F4D03F",
   },
   tabText: {
     fontSize: 14,
-    color: "#888",
+    color: "#999999",
     fontWeight: "500",
   },
   activeTabText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontWeight: "600",
   },
   // Posts Section Styles
@@ -832,17 +870,25 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   postsList: {
-    paddingBottom: 10,
+    paddingBottom: 120, // Extra padding for TabNavigator
   },
   postSeparator: {
     height: 16,
   },
   postCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#222",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   postHeader: {
     flexDirection: "row",
@@ -851,11 +897,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   postDate: {
-    color: "#888",
+    color: "#999999",
     fontSize: 14,
+    fontWeight: "500",
   },
   postCaption: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
     lineHeight: 22,
     marginBottom: 16,
@@ -866,9 +913,11 @@ const styles = StyleSheet.create({
   },
   mapPreviewContainer: {
     height: 120,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#222",
+    backgroundColor: "#333333",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
   },
   mapPreview: {
     flex: 1,
@@ -879,10 +928,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#2A2A2A",
+    backgroundColor: "#333333",
   },
   mapFallbackText: {
-    color: "#666",
+    color: "#999999",
     fontSize: 12,
     marginTop: 8,
   },
@@ -907,7 +956,7 @@ const styles = StyleSheet.create({
   postImage: {
     width: "100%",
     height: 150,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   multiImageContainer: {
     flexDirection: "row",
@@ -916,7 +965,7 @@ const styles = StyleSheet.create({
   },
   multiImage: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   moreImagesOverlay: {
     position: "absolute",
@@ -927,7 +976,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   moreImagesText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
   },
@@ -939,13 +988,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#222",
+    backgroundColor: "#3a3a3a",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#4a4a4a",
   },
   postStatText: {
-    color: "#fff",
+    color: "#F4D03F",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -957,14 +1008,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
@@ -972,14 +1023,22 @@ const styles = StyleSheet.create({
   createPostButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#F4D03F",
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     gap: 8,
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   createPostButtonText: {
-    color: "#000",
+    color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -993,14 +1052,14 @@ const styles = StyleSheet.create({
   },
   comingSoonTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginTop: 16,
     marginBottom: 8,
   },
   comingSoonText: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     textAlign: "center",
   },
   menuSection: {
@@ -1012,19 +1071,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#111",
-    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   menuText: {
     flex: 1,
     fontSize: 16,
-    color: "#fff",
+    color: "#FFFFFF",
     marginLeft: 16,
+    fontWeight: "500",
   },
   logoutIconButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "black",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
   },
 });

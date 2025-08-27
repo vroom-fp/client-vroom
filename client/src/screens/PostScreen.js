@@ -212,7 +212,7 @@ export default function PostScreen() {
           <Text style={styles.headerTitle}>Trip Posts</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#F4D03F" />
         </View>
       </View>
     );
@@ -228,7 +228,7 @@ export default function PostScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#ff3b30" />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={fetchPosts}>
-            <Ionicons name="refresh" size={20} color="#fff" />
+            <Ionicons name="refresh" size={20} color="#F4D03F" />
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -265,7 +265,7 @@ export default function PostScreen() {
         <View style={styles.postHeader}>
           <View style={styles.userInfo}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={20} color="#007AFF" />
+              <Ionicons name="person" size={20} color="#F4D03F" />
             </View>
             <View style={styles.userDetails}>
               <Text style={styles.username}>
@@ -282,15 +282,15 @@ export default function PostScreen() {
         {/* Trip Stats */}
         <View style={styles.tripStats}>
           <View style={styles.statItem}>
-            <Ionicons name="map" size={16} color="#007AFF" />
+            <Ionicons name="map" size={16} color="#F4D03F" />
             <Text style={styles.statText}>{distanceKm} km</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="timer" size={16} color="#007AFF" />
+            <Ionicons name="timer" size={16} color="#F4D03F" />
             <Text style={styles.statText}>{durationStr}</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="location" size={16} color="#007AFF" />
+            <Ionicons name="location" size={16} color="#F4D03F" />
             <Text style={styles.statText}>
               {trip?.path?.length || 0} points
             </Text>
@@ -388,7 +388,7 @@ export default function PostScreen() {
                 console.log("Map render error:", error);
                 return (
                   <View style={styles.mapFallback}>
-                    <Ionicons name="map-outline" size={40} color="#666" />
+                    <Ionicons name="map-outline" size={40} color="#999999" />
                     <Text style={styles.mapFallbackText}>
                       Map not available
                     </Text>
@@ -466,7 +466,7 @@ export default function PostScreen() {
             <Ionicons
               name={item.isLiked ? "heart" : "heart-outline"}
               size={18}
-              color={item.isLiked ? "#ff3b30" : "#007AFF"}
+              color={item.isLiked ? "#ff3b30" : "#F4D03F"}
             />
             <Text
               style={[
@@ -488,7 +488,7 @@ export default function PostScreen() {
               navigation.navigate("PostDetailScreen", { postId: item._id });
             }}
           >
-            <Ionicons name="chatbubbles-outline" size={18} color="#007AFF" />
+            <Ionicons name="chatbubbles-outline" size={18} color="#F4D03F" />
             <Text style={styles.actionText}>
               {item.commentCount || 0}{" "}
               {(item.commentCount || 0) === 1 ? "Comment" : "Comments"}
@@ -511,7 +511,7 @@ export default function PostScreen() {
             style={styles.searchButton}
             onPress={() => navigation.navigate("SearchScreen")}
           >
-            <Ionicons name="search" size={20} color="#007AFF" />
+            <Ionicons name="search" size={20} color="#F4D03F" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.refreshButton}
@@ -521,7 +521,7 @@ export default function PostScreen() {
             <Ionicons
               name="refresh"
               size={20}
-              color={refreshing ? "#666" : "#007AFF"}
+              color={refreshing ? "#666" : "#F4D03F"}
             />
           </TouchableOpacity>
         </View>
@@ -538,14 +538,14 @@ export default function PostScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#007AFF"
+            tintColor="#F4D03F"
             title="Pull to refresh"
-            titleColor="#888"
+            titleColor="#999999"
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="documents-outline" size={64} color="#666" />
+            <Ionicons name="documents-outline" size={64} color="#999999" />
             <Text style={styles.emptyTitle}>No Posts Yet</Text>
             <Text style={styles.emptyText}>
               Be the first to share your trip experiences!
@@ -561,40 +561,40 @@ export default function PostScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1a1a1a",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingTop: 50,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#2a2a2a",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   headerActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: 12,
   },
   searchButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#111",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
   },
   refreshButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#111",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
   },
   loadingContainer: {
     flex: 1,
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 16,
     marginTop: 16,
   },
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 16,
     textAlign: "center",
     marginTop: 16,
@@ -622,24 +622,31 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#007AFF",
+    backgroundColor: "#F4D03F",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 8,
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   retryText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   separator: {
-    height: 1,
-    backgroundColor: "#333",
-    marginHorizontal: 20,
+    height: 12,
+    backgroundColor: "transparent",
   },
   emptyContainer: {
     alignItems: "center",
@@ -648,27 +655,35 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     textAlign: "center",
     lineHeight: 24,
   },
 
   // Post Card Styles
   postCard: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     marginHorizontal: 20,
-    marginVertical: 10,
-    borderRadius: 12,
+    marginVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
     overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   postHeader: {
     flexDirection: "row",
@@ -676,7 +691,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#3a3a3a",
   },
   userInfo: {
     flexDirection: "row",
@@ -684,15 +699,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#333",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#3a3a3a",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#555",
+    borderWidth: 2,
+    borderColor: "#F4D03F",
   },
   userDetails: {
     flex: 1,
@@ -700,17 +715,17 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: "#FFFFFF",
     marginBottom: 2,
   },
   timestamp: {
     fontSize: 12,
-    color: "#888",
+    color: "#999999",
   },
   caption: {
     fontSize: 16,
     lineHeight: 22,
-    color: "#fff",
+    color: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -721,10 +736,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#0a0a0a",
+    backgroundColor: "#1a1a1a",
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
   },
   statItem: {
     flexDirection: "row",
@@ -732,7 +747,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -740,11 +755,11 @@ const styles = StyleSheet.create({
   // Map Styles
   mapContainer: {
     height: 200,
-    backgroundColor: "#222",
+    backgroundColor: "#333333",
     position: "relative",
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
   },
   mapPreview: {
     flex: 1,
@@ -755,15 +770,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#222",
+    backgroundColor: "#333333",
   },
   mapFallbackText: {
-    color: "#888",
+    color: "#999999",
     fontSize: 16,
     marginTop: 8,
   },
   mapFallbackSubtext: {
-    color: "#666",
+    color: "#666666",
     fontSize: 12,
     marginTop: 4,
   },
@@ -787,7 +802,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   pointLabel: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "500",
   },
@@ -820,7 +835,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
   },
   postImage: {
     width: "100%",
@@ -846,7 +861,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   moreImagesText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -858,29 +873,29 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#222",
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#3a3a3a",
     borderWidth: 1,
-    borderColor: "#333",
-    gap: 6,
+    borderColor: "#4a4a4a",
+    gap: 8,
   },
   actionButtonActive: {
-    backgroundColor: "#2a2a2a",
-    borderColor: "#007AFF",
+    backgroundColor: "#F4D03F",
+    borderColor: "#F4D03F",
   },
   actionText: {
-    color: "#007AFF",
+    color: "#F4D03F",
     fontSize: 14,
     fontWeight: "500",
   },
   actionTextActive: {
-    color: "#007AFF",
+    color: "#1a1a1a",
   },
 });
