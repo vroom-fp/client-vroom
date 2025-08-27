@@ -48,6 +48,7 @@ module.exports = {
   plugins: [
     "expo-secure-store",
     "expo-location",
+    "expo-background-task",
     [
       "expo-image-picker",
       {

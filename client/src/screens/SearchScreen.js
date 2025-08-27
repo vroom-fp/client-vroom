@@ -265,7 +265,7 @@ export default function SearchScreen() {
     if (searchQuery.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name="search" size={64} color="#666" />
+          <Ionicons name="search" size={64} color="#999999" />
           <Text style={styles.emptyTitle}>Search Users</Text>
           <Text style={styles.emptyText}>
             Enter at least 2 characters to search for users
@@ -277,7 +277,7 @@ export default function SearchScreen() {
     if (searchQuery.length < 2) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name="text" size={64} color="#666" />
+          <Ionicons name="text" size={64} color="#999999" />
           <Text style={styles.emptyTitle}>Keep typing...</Text>
           <Text style={styles.emptyText}>
             Enter at least 2 characters to search
@@ -289,7 +289,7 @@ export default function SearchScreen() {
     if (!loading && searchResults.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Ionicons name="person-outline" size={64} color="#666" />
+          <Ionicons name="person-outline" size={64} color="#999999" />
           <Text style={styles.emptyTitle}>No users found</Text>
           <Text style={styles.emptyText}>
             Try searching with different keywords
@@ -329,7 +329,7 @@ export default function SearchScreen() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color="#F4D03F" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Search Users</Text>
         <View style={styles.headerRight} />
@@ -338,7 +338,7 @@ export default function SearchScreen() {
       {/* Search Input */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#666" />
+          <Ionicons name="search" size={20} color="#999999" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search users..."
@@ -353,7 +353,7 @@ export default function SearchScreen() {
               onPress={() => setSearchQuery("")}
               style={styles.clearButton}
             >
-              <Ionicons name="close-circle" size={20} color="#666" />
+              <Ionicons name="close-circle" size={20} color="#999999" />
             </TouchableOpacity>
           )}
         </View>
@@ -376,7 +376,7 @@ export default function SearchScreen() {
       {/* Loading Overlay */}
       {loading && searchResults.length === 0 && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#F4D03F" />
           <Text style={styles.loadingText}>Searching...</Text>
         </View>
       )}
@@ -387,27 +387,31 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1a1a1a",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    borderBottomColor: "#2a2a2a",
   },
   backButton: {
-    padding: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   headerRight: {
-    width: 40, // Same width as back button for balance
+    width: 48, // Same width as back button for balance
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -416,17 +420,25 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#111",
-    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#fff",
+    color: "#FFFFFF",
     marginLeft: 12,
   },
   clearButton: {
@@ -434,19 +446,34 @@ const styles = StyleSheet.create({
   },
   resultsList: {
     paddingHorizontal: 20,
+    paddingBottom: 120, // Extra padding for TabNavigator
   },
   userItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    paddingHorizontal: 16,
+    marginVertical: 6,
+    backgroundColor: "#2a2a2a",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
     marginRight: 16,
+    borderWidth: 2,
+    borderColor: "#F4D03F",
   },
   userInfo: {
     flex: 1,
@@ -454,12 +481,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    color: "#888",
+    color: "#999999",
     marginBottom: 8,
   },
   userStats: {
@@ -468,37 +495,49 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: "#666",
+    color: "#999999",
+    fontWeight: "500",
   },
   statDivider: {
     marginHorizontal: 8,
     fontSize: 12,
-    color: "#666",
+    color: "#666666",
   },
   mutualText: {
     fontSize: 12,
-    color: "#007AFF",
+    color: "#F4D03F",
+    fontWeight: "500",
   },
   followButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#F4D03F",
     paddingHorizontal: 20,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 16,
     minWidth: 80,
     alignItems: "center",
+    shadowColor: "#F4D03F",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   followingButton: {
-    backgroundColor: "#333",
+    backgroundColor: "#3a3a3a",
     borderWidth: 1,
-    borderColor: "#666",
+    borderColor: "#4a4a4a",
+    shadowColor: "#000000",
+    shadowOpacity: 0.2,
   },
   followButtonText: {
-    color: "#fff",
+    color: "#1a1a1a",
     fontSize: 14,
     fontWeight: "600",
   },
   followingButtonText: {
-    color: "#ccc",
+    color: "#999999",
   },
   emptyState: {
     flex: 1,
@@ -508,14 +547,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: "#888",
+    color: "#999999",
     textAlign: "center",
     lineHeight: 24,
   },
@@ -524,15 +563,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadMoreButton: {
-    backgroundColor: "#111",
+    backgroundColor: "#2a2a2a",
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#333",
+    borderColor: "#3a3a3a",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   loadMoreText: {
-    color: "#007AFF",
+    color: "#F4D03F",
     fontSize: 14,
     fontWeight: "600",
   },
@@ -544,10 +591,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(26, 26, 26, 0.9)",
   },
   loadingText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
     marginTop: 12,
   },

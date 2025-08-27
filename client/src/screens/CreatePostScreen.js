@@ -16,6 +16,7 @@ import {
   Dimensions,
   Platform,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AuthContext from "../contexts/AuthContext";
@@ -296,333 +297,450 @@ export default function CreatePostScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading trip data...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#F4D03F" />
+          <Text style={styles.loadingText}>Loading trip data...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Post</Text>
-        <TouchableOpacity
-          style={styles.previewButton}
-          onPress={previewPost}
-          disabled={!caption.trim() && selectedImages.length === 0}
-        >
-          <Ionicons
-            name="eye"
-            size={24}
-            color={
-              !caption.trim() && selectedImages.length === 0 ? "#666" : "#fff"
-            }
-          />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#F4D03F" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Create Post</Text>
+          <TouchableOpacity
+            style={[
+              styles.previewButton,
+              !caption.trim() &&
+                selectedImages.length === 0 &&
+                styles.previewButtonDisabled,
+            ]}
+            onPress={previewPost}
+            disabled={!caption.trim() && selectedImages.length === 0}
+          >
+            <Ionicons
+              name="eye"
+              size={24}
+              color={
+                !caption.trim() && selectedImages.length === 0
+                  ? "#999999"
+                  : "#F4D03F"
+              }
+            />
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Trip Summary Card */}
-        {trip && (
-          <View style={styles.tripCard}>
-            <View style={styles.tripHeader}>
-              <Ionicons name="location" size={20} color="#007AFF" />
-              <Text style={styles.tripTitle}>Trip Summary</Text>
-              <View style={styles.tripDate}>
-                <Text style={styles.tripDateText}>
-                  {formatDate(trip.createdAt)}
-                </Text>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
+        >
+          {/* Trip Summary Card */}
+          {trip && (
+            <View style={styles.tripCard}>
+              <View style={styles.tripHeader}>
+                <View style={styles.tripIconContainer}>
+                  <Ionicons name="location" size={20} color="#F4D03F" />
+                </View>
+                <View style={styles.tripTitleContainer}>
+                  <Text style={styles.tripTitle}>Trip Summary</Text>
+                  <Text style={styles.tripDate}>
+                    {formatDate(trip.createdAt)}
+                  </Text>
+                </View>
               </View>
+
+              <View style={styles.tripStats}>
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="walk-outline" size={18} color="#F4D03F" />
+                  </View>
+                  <Text style={styles.statLabel}>Distance</Text>
+                  <Text style={styles.statValue}>
+                    {formatDistance(trip.distance || 0)}
+                  </Text>
+                </View>
+
+                <View style={styles.statDivider} />
+
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="time-outline" size={18} color="#F4D03F" />
+                  </View>
+                  <Text style={styles.statLabel}>Duration</Text>
+                  <Text style={styles.statValue}>
+                    {formatDuration(trip.duration || 0)}
+                  </Text>
+                </View>
+
+                <View style={styles.statDivider} />
+
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="time" size={18} color="#F4D03F" />
+                  </View>
+                  <Text style={styles.statLabel}>Started</Text>
+                  <Text style={styles.statValue}>
+                    {formatTime(trip.createdAt)}
+                  </Text>
+                </View>
+              </View>
+
+              {trip.startPoint && (
+                <View style={styles.routeInfo}>
+                  <View style={styles.routeHeader}>
+                    <Ionicons
+                      name="navigate-outline"
+                      size={16}
+                      color="#F4D03F"
+                    />
+                    <Text style={styles.routeLabel}>Route Details</Text>
+                  </View>
+                  <Text style={styles.routeText}>
+                    {trip.startPoint.lat?.toFixed(4)},{" "}
+                    {trip.startPoint.lng?.toFixed(4)}
+                    {trip.endPoint &&
+                      ` → ${trip.endPoint.lat?.toFixed(
+                        4
+                      )}, ${trip.endPoint.lng?.toFixed(4)}`}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Caption Input */}
+          <View style={styles.captionCard}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="create-outline" size={20} color="#F4D03F" />
+              <Text style={styles.sectionTitle}>Share Your Experience</Text>
+            </View>
+            <TextInput
+              style={styles.captionInput}
+              placeholder="Write about your trip... How was the route? Any interesting stops?"
+              placeholderTextColor="#999999"
+              multiline
+              numberOfLines={4}
+              maxLength={500}
+              value={caption}
+              onChangeText={setCaption}
+            />
+            <View style={styles.captionFooter}>
+              <Text style={styles.characterCount}>
+                {caption.length}/500 characters
+              </Text>
+            </View>
+          </View>
+
+          {/* Photo Section */}
+          <View style={styles.photoCard}>
+            <View style={styles.photoHeader}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="camera-outline" size={20} color="#F4D03F" />
+                <Text style={styles.sectionTitle}>Add Photos</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addPhotoButton}
+                onPress={handleAddPhoto}
+              >
+                <Ionicons name="add" size={16} color="#F4D03F" />
+                <Text style={styles.addPhotoText}>Add Photo</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.tripStats}>
-              <View style={styles.statItem}>
-                <Ionicons name="speedometer" size={16} color="#666" />
-                <Text style={styles.statLabel}>Distance</Text>
-                <Text style={styles.statValue}>
-                  {formatDistance(trip.distance || 0)}
-                </Text>
-              </View>
-
-              <View style={styles.statItem}>
-                <Ionicons name="time" size={16} color="#666" />
-                <Text style={styles.statLabel}>Duration</Text>
-                <Text style={styles.statValue}>
-                  {formatDuration(trip.duration || 0)}
-                </Text>
-              </View>
-
-              <View style={styles.statItem}>
-                <Ionicons name="calendar" size={16} color="#666" />
-                <Text style={styles.statLabel}>Started</Text>
-                <Text style={styles.statValue}>
-                  {formatTime(trip.createdAt)}
-                </Text>
-              </View>
-            </View>
-
-            {trip.startPoint && (
-              <View style={styles.routeInfo}>
-                <Text style={styles.routeLabel}>Route:</Text>
-                <Text style={styles.routeText}>
-                  {trip.startPoint.lat?.toFixed(4)},{" "}
-                  {trip.startPoint.lng?.toFixed(4)}
-                  {trip.endPoint &&
-                    ` → ${trip.endPoint.lat?.toFixed(
-                      4
-                    )}, ${trip.endPoint.lng?.toFixed(4)}`}
+            {selectedImages.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.photoGrid}>
+                  {selectedImages.map((image, index) => (
+                    <View key={index} style={styles.photoItem}>
+                      <Image
+                        source={{ uri: image.uri }}
+                        style={styles.photoImage}
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        style={styles.removePhoto}
+                        onPress={() => removeImage(index)}
+                      >
+                        <Ionicons
+                          name="close-circle"
+                          size={20}
+                          color="#FF6B6B"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyPhotoState}>
+                <View style={styles.emptyPhotoIcon}>
+                  <Ionicons name="camera-outline" size={40} color="#999999" />
+                </View>
+                <Text style={styles.emptyPhotoText}>No photos added yet</Text>
+                <Text style={styles.emptyPhotoSubtext}>
+                  Tap "Add Photo" to include images of your trip
                 </Text>
               </View>
             )}
           </View>
-        )}
+        </ScrollView>
 
-        {/* Caption Input */}
-        <View style={styles.captionCard}>
-          <Text style={styles.sectionTitle}>Share Your Experience</Text>
-          <TextInput
-            style={styles.captionInput}
-            placeholder="Write about your trip... How was the route? Any interesting stops?"
-            placeholderTextColor="#888"
-            multiline
-            numberOfLines={4}
-            maxLength={500}
-            value={caption}
-            onChangeText={setCaption}
-          />
-          <Text style={styles.characterCount}>
-            {caption.length}/500 characters
-          </Text>
+        {/* Create Post Button */}
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity
+            style={[
+              styles.createButton,
+              !caption.trim() &&
+                selectedImages.length === 0 &&
+                styles.createButtonDisabled,
+            ]}
+            onPress={createPost}
+            disabled={
+              isPosting || (!caption.trim() && selectedImages.length === 0)
+            }
+          >
+            {isPosting ? (
+              <ActivityIndicator color="#1A1A1A" />
+            ) : (
+              <>
+                <Ionicons name="send" size={20} color="#1A1A1A" />
+                <Text style={styles.createButtonText}>Share Post</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-
-        {/* Photo Section */}
-        <View style={styles.photoCard}>
-          <View style={styles.photoHeader}>
-            <Text style={styles.sectionTitle}>Add Photos</Text>
-            <TouchableOpacity
-              style={styles.addPhotoButton}
-              onPress={handleAddPhoto}
-            >
-              <Ionicons name="camera" size={16} color="#007AFF" />
-              <Text style={styles.addPhotoText}>Add Photo</Text>
-            </TouchableOpacity>
-          </View>
-
-          {selectedImages.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.photoGrid}>
-                {selectedImages.map((image, index) => (
-                  <View key={index} style={styles.photoItem}>
-                    <Image
-                      source={{ uri: image.uri }}
-                      style={styles.photoImage}
-                      resizeMode="cover"
-                    />
-                    <TouchableOpacity
-                      style={styles.removePhoto}
-                      onPress={() => removeImage(index)}
-                    >
-                      <Ionicons name="close-circle" size={20} color="#ff3b30" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          ) : (
-            <View style={styles.emptyPhotoState}>
-              <Ionicons name="camera-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyPhotoText}>No photos added yet</Text>
-              <Text style={styles.emptyPhotoSubtext}>
-                Tap "Add Photo" to include images of your trip
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Create Post Button */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={[
-            styles.createButton,
-            !caption.trim() &&
-              selectedImages.length === 0 &&
-              styles.createButtonDisabled,
-          ]}
-          onPress={createPost}
-          disabled={
-            isPosting || (!caption.trim() && selectedImages.length === 0)
-          }
-        >
-          {isPosting ? (
-            <ActivityIndicator color="#000" />
-          ) : (
-            <>
-              <Ionicons name="send" size={20} color="#000" />
-              <Text style={styles.createButtonText}>Share Post</Text>
-            </>
-          )}
-        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#1A1A1A",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1A1A1A",
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#1A1A1A",
     justifyContent: "center",
     alignItems: "center",
   },
   loadingText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
     marginTop: 16,
+    fontWeight: "500",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    borderBottomColor: "#2A2A2A",
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    backgroundColor: "#2A2A2A",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
     flex: 1,
     textAlign: "center",
   },
   previewButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    backgroundColor: "#2A2A2A",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  previewButtonDisabled: {
+    opacity: 0.5,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+  },
+  scrollContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
   },
   tripCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#333",
+    backgroundColor: "#2A2A2A",
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 24,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   tripHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  tripIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#3A3A3A",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  tripTitleContainer: {
+    flex: 1,
   },
   tripTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#fff",
-    marginLeft: 8,
-    flex: 1,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
   tripDate: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  tripDateText: {
-    color: "#fff",
-    fontSize: 12,
+    fontSize: 14,
+    color: "#999999",
     fontWeight: "500",
   },
   tripStats: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    backgroundColor: "#3A3A3A",
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
   },
   statItem: {
     flex: 1,
     alignItems: "center",
   },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    backgroundColor: "#2A2A2A",
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "#999999",
+    marginHorizontal: 16,
+    opacity: 0.3,
+  },
   statLabel: {
-    color: "#888",
+    color: "#999999",
     fontSize: 12,
-    marginTop: 4,
     marginBottom: 4,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   statValue: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   routeInfo: {
-    backgroundColor: "#1a1a1a",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#3A3A3A",
+    padding: 16,
+    borderRadius: 12,
+  },
+  routeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
   },
   routeLabel: {
-    color: "#888",
+    color: "#999999",
     fontSize: 12,
-    marginBottom: 4,
+    fontWeight: "500",
+    marginLeft: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   routeText: {
-    color: "#00ff00",
+    color: "#4CAF50",
     fontSize: 12,
-    fontFamily: "monospace",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    lineHeight: 16,
   },
   captionCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#333",
+    backgroundColor: "#2A2A2A",
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 24,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-    marginBottom: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginLeft: 12,
   },
   captionInput: {
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
+    backgroundColor: "#3A3A3A",
+    borderRadius: 12,
     padding: 16,
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: "top",
-    borderWidth: 1,
-    borderColor: "#333",
+    lineHeight: 22,
+  },
+  captionFooter: {
+    marginTop: 12,
   },
   characterCount: {
-    color: "#888",
+    color: "#999999",
     fontSize: 12,
     textAlign: "right",
-    marginTop: 8,
+    fontWeight: "500",
   },
   photoCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#333",
+    backgroundColor: "#2A2A2A",
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 24,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   photoHeader: {
     flexDirection: "row",
@@ -633,17 +751,18 @@ const styles = StyleSheet.create({
   addPhotoButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1a1a1a",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: "#3A3A3A",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#007AFF",
+    borderColor: "#F4D03F",
   },
   addPhotoText: {
-    color: "#007AFF",
+    color: "#F4D03F",
     fontSize: 14,
-    marginLeft: 6,
+    marginLeft: 8,
+    fontWeight: "600",
   },
   photoGrid: {
     flexDirection: "row",
@@ -653,135 +772,74 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   photoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#333",
-  },
-  photoPlaceholder: {
-    width: 80,
-    height: 80,
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#333",
+    width: 88,
+    height: 88,
+    borderRadius: 12,
+    backgroundColor: "#3A3A3A",
   },
   removePhoto: {
     position: "absolute",
-    top: -8,
-    right: -8,
-    backgroundColor: "#000",
-    borderRadius: 10,
+    top: -6,
+    right: -6,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 12,
+    padding: 2,
   },
   emptyPhotoState: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 40,
   },
-  emptyPhotoText: {
-    color: "#888",
-    fontSize: 16,
-    marginTop: 12,
-  },
-  emptyPhotoSubtext: {
-    color: "#666",
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  previewCard: {
-    backgroundColor: "#111",
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#333",
-  },
-  postPreview: {
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
-    padding: 16,
-  },
-  previewHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  avatarPlaceholder: {
-    width: 36,
-    height: 36,
-    backgroundColor: "#333",
-    borderRadius: 18,
+  emptyPhotoIcon: {
+    width: 80,
+    height: 80,
+    backgroundColor: "#3A3A3A",
+    borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 16,
   },
-  previewUserInfo: {
-    marginLeft: 12,
-  },
-  previewUsername: {
-    color: "#fff",
-    fontSize: 14,
+  emptyPhotoText: {
+    color: "#999999",
+    fontSize: 16,
     fontWeight: "600",
-  },
-  previewTime: {
-    color: "#888",
-    fontSize: 12,
-  },
-  previewCaption: {
-    color: "#fff",
-    fontSize: 14,
-    lineHeight: 20,
     marginBottom: 8,
   },
-  previewImagesContainer: {
-    marginBottom: 12,
-  },
-  previewImage: {
-    width: 120,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  previewImageCount: {
-    color: "#888",
-    fontSize: 12,
-    marginTop: 4,
+  emptyPhotoSubtext: {
+    color: "#999999",
+    fontSize: 14,
     textAlign: "center",
-  },
-  previewTripInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  previewTripText: {
-    color: "#007AFF",
-    fontSize: 12,
-    marginLeft: 4,
+    lineHeight: 20,
+    opacity: 0.8,
   },
   bottomContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 40, // Reduced padding for TabNavigator
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#333",
+    borderTopColor: "#2A2A2A",
+    backgroundColor: "#1A1A1A",
   },
   createButton: {
-    backgroundColor: "#fff",
+    backgroundColor: "#F4D03F",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   createButtonDisabled: {
-    backgroundColor: "#333",
+    backgroundColor: "#3A3A3A",
+    opacity: 0.6,
   },
   createButtonText: {
-    color: "#000",
+    color: "#1A1A1A",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     marginLeft: 8,
   },
 });
