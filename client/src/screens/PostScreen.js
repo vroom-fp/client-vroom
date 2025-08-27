@@ -213,7 +213,6 @@ export default function PostScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading posts...</Text>
         </View>
       </View>
     );
@@ -507,17 +506,25 @@ export default function PostScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Trip Posts</Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-          <Ionicons
-            name="refresh"
-            size={20}
-            color={refreshing ? "#666" : "#007AFF"}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => navigation.navigate("SearchScreen")}
+          >
+            <Ionicons name="search" size={20} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <Ionicons
+              name="refresh"
+              size={20}
+              color={refreshing ? "#666" : "#007AFF"}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Posts List */}
@@ -570,6 +577,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#fff",
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  searchButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#111",
+    borderWidth: 1,
+    borderColor: "#333",
   },
   refreshButton: {
     padding: 8,
