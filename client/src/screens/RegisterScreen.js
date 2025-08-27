@@ -80,7 +80,7 @@ export function RegisterScreen() {
           {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="person-add" size={64} color="#F4D03F" />
+              <Ionicons name="navigate-circle" size={85} color="#F4D03F" />
             </View>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Join us and start your journey</Text>

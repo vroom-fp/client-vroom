@@ -78,7 +78,7 @@ export function LoginScreen() {
           {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="car-sport" size={64} color="#F4D03F" />
+              <Ionicons name="navigate-circle" size={85} color="#F4D03F" />
             </View>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>
